@@ -4,23 +4,6 @@
 [System.Reflection.Assembly]::LoadWithPartialName("System.Web") | out-null 
 
 function oktaNewPassword {
-# .SYNOPSIS
-#   Creates a new complex password.
-# .DESCRIPTION
-#   Creates a new complex password.
-# .PARAMETER Length
-#   The minimum password length. The default value is 8.
-# .PARAMETER MustIncludeSets
-#   The number of character sets which must be included in the password. The default is 3 (of 4).
-# .INPUTS
-#   System.UInt32
-# .OUTPUTS
-#   System.String  
-# .EXAMPLE
-#   oktaNewPassword
-# .EXAMPLE
-#   oktaNewPassword -Length 30
-
     param
     (
         [Int32]$Length = 15,
@@ -87,48 +70,6 @@ function oktaProcessHeaderLink()
         }
     }
     return $olinks
-}
-
-function _oktaOldCall()
-{
-    param
-    (
-        [String]$oOrg = $oktaDefOrg,
-        [String]$method,
-        [String]$resource,
-        [HashTable]$body
-    )
-
-    [HashTable]$headers = @{"Authorization" = ("SSWS " + $OktaOrgs[$oOrg].secToken)}
-    [string]$contenttype = "application/json"
-    [string]$URI = $OktaOrgs[$oOrg].baseUrl + $resource
-
-    if ($method.ToUpper() -eq "GET")
-    {
-        try
-        {
-            $result = Invoke-RestMethod -Method $method -Uri $URI -Headers $headers -ContentType $contenttype -ErrorAction SilentlyContinue -Verbose:$oktaVerbose -DisableKeepAlive
-        }
-        catch
-        {
-            Write-Error "Invoke-Restmethod failed"
-            return $false
-        }
-    } else {
-        $json = ConvertTo-Json -InputObject $body
-        if ($oktaVerbose) {write-host $json}
-
-        try
-        {
-            $result = Invoke-RestMethod -Method $method -Uri $URI -Headers $headers -ContentType $contenttype -Body $json -ErrorAction SilentlyContinue -Verbose:$oktaVerbose -DisableKeepAlive
-        }
-        catch
-        {
-            $_|select *
-            Throw "Invoke-Restmethod failed " + $_
-        }
-    }
-    return $result
 }
 
 function _testOrg()
@@ -376,23 +317,26 @@ function oktaNewUser()
         [string]$email,
         [string]$firstName,
         [string]$lastName,
-        [string]$employeeNumber,
-        [string]$r_question="What is your password?",
-        [string]$r_answer=$password
+        [string]$r_question="What Was your password?",
+        [string]$r_answer=(oktaNewPassword),
+        [object]$additional=@{}
     )
     $psobj = @{
-                "profile" = @{
-                    "firstName" = $firstName    
-                    "lastName" = $lastName
-                    "email" = $email
-                    "login" = $login
-                    "employeeNumber" = $employeeNumber
+                profile = @{
+                    firstName = $firstName    
+                    lastName = $lastName
+                    email = $email
+                    login = $login
                 }
-                "credentials" = @{
-                    "password" = @{ "value" = $password }
-                    "recovery_question" = @{ "question" = $r_question;"answer" = $r_answer.ToLower().Replace(" ","")}
+                credentials = @{
+                    password = @{ value = $password }
+                    recovery_question = @{ question = $r_question;answer = $r_answer.ToLower().Replace(" ","")}
                 }
               }
+    foreach ($attrib in $additional.keys)
+    {
+        $psobj.profile.add($attrib, $additional.$attrib)
+    }
     [string]$method = "POST"
     [string]$resource = "/api/v1/users?activate=True"
     try
@@ -410,33 +354,97 @@ function oktaNewUser()
     return $request
 }
 
-function oktaStringtoGUID()
-{
-    param
-    (
-        [string]$string
-    )
-
-    $guid = New-Object -TypeName System.Guid -ArgumentList($string)
-    return $guid
-}
-
 function oktaChangeProfilebyID()
 {
     param
     (
         [Parameter(Mandatory=$true,ValueFromPipeline=$true)][ValidateScript({$oktaOrgs[$_]})][string]$oOrg,
-        [Parameter(Mandatory=$true,ValueFromPipeline=$true)][string]$userId,
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true)][string]$uid,
         [Parameter(Mandatory=$true,ValueFromPipeline=$true)][hashtable]$newprofile
     )
 
     $psobj = $newprofile
     
     [string]$method = "PUT"
-    [string]$resource = "/api/v1/users/" + $userId
+    [string]$resource = "/api/v1/users/" + $uid
     try
     {
         $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj -enablePagination:$true
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaPutProfileupdate()
+{
+    param
+    (
+        [string]$oOrg,
+        [string]$uid,
+        [object]$updates
+    )
+
+    $psobj = New-Object System.Collections.Hashtable
+    Add-Member -InputObject $psobj -MemberType NoteProperty -Name profile -Value $updates
+
+    [string]$method = "PUT"
+    [string]$resource = "/api/v1/users/" + $uid
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaUpdateUserbyID()
+{
+    param
+    (
+        [string]$oOrg,
+        [string]$uid,
+        [string]$login,
+        [string]$password,
+        [string]$email,
+        [string]$firstName,
+        [string]$lastName,
+        [string]$mobilePhone,
+        [string]$r_question,
+        [string]$r_answer
+    )
+    $psobj = @{
+                "profile" = @{
+                    "firstName" = $firstName    
+                    "lastName" = $lastName
+                    "email" = $email
+                    "login" = $login
+                    "mobilePhone" = $mobilePhone
+                }
+                "credentials" = @{
+                    "password" = @{ "value" = $password }
+                    "recovery_question" = @{ "question" = $r_question;"answer" = $r_answer.ToLower().Replace(" ","")}
+                }
+              }
+    
+    [string]$method = "PUT"
+    [string]$resource = "/api/v1/users/" + $uid
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
     }
     catch
     {
@@ -454,7 +462,7 @@ function oktaChangePasswordbyID()
    param
     (
         [string]$oOrg,
-        [string]$userId,
+        [string]$uid,
         [string]$new_password,
         [string]$old_password
     )
@@ -464,7 +472,7 @@ function oktaChangePasswordbyID()
               }
 
     [string]$method = "POST"
-    [string]$resource = "/api/v1/users/" + $userId + "/credentials/change_password"
+    [string]$resource = "/api/v1/users/" + $uid + "/credentials/change_password"
     try
     {
         $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
@@ -480,12 +488,39 @@ function oktaChangePasswordbyID()
     return $request
 }
 
+function oktaAdminExpirePasswordbyID()
+{
+    param
+    (
+        [string]$oOrg,
+        [string]$uid,
+        [string]$tempPassword=(oktaNewPassword)
+    )
+    $psobj = @{ "tempPassword" = $tempPassword }
+
+    [string]$method = "POST"
+    [string]$resource = "/api/v1/users/" + $uid + "/lifecycle/expire_password?tempPassword=false"
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request    
+}
+
 function oktaAdminUpdatePasswordbyID()
 {
     param
     (
         [string]$oOrg,
-        [string]$userId,
+        [string]$uid,
         [string]$password
     )
     $psobj = @{
@@ -494,7 +529,7 @@ function oktaAdminUpdatePasswordbyID()
                  }
               }
     [string]$method = "PUT"
-    [string]$resource = "/api/v1/users/" + $userId
+    [string]$resource = "/api/v1/users/" + $uid
     try
     {
         $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
@@ -515,7 +550,7 @@ function oktaForgotPasswordbyId()
     param
     (
         [string]$oOrg,
-        [string]$userId,
+        [string]$uid,
         [string]$r_answer,
         [string]$new_password
     )
@@ -524,7 +559,7 @@ function oktaForgotPasswordbyId()
                 "recovery_question" = @{ "answer" = $r_answer.ToLower().Replace(" ","") }
               }
     [string]$method = "POST"
-    [string]$resource = "/api/v1/users/" + $userId + "/credentials/forgot_password"
+    [string]$resource = "/api/v1/users/" + $uid + "/credentials/forgot_password"
     try
     {
         $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
@@ -597,13 +632,13 @@ function oktaGetUserbyID()
     param
     (
         [string]$oOrg,
-        [string]$userId
+        [string]$uid
     )
     #UrlEncode
-    $userId = [System.Web.HttpUtility]::UrlPathEncode($userId)
+    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
     
     [string]$method = "GET"
-    [string]$resource = "/api/v1/users/" + $userId
+    [string]$resource = "/api/v1/users/" + $uid
     
     try
     {
@@ -625,14 +660,14 @@ function oktaGetUsersbyAppID()
     param
     (
         [string]$oOrg,
-        [string]$appId,
+        [string]$aid,
         [int]$limit=$OktaOrgs[$oOrg].pageSize
     )
     #UrlEncode
-    $userId = [System.Web.HttpUtility]::UrlPathEncode($userId)
+    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
     
     [string]$method = "GET"
-    [string]$resource = "/api/v1/apps/" + $appId + "/users?limit=" + $limit
+    [string]$resource = "/api/v1/apps/" + $aid + "/users?limit=" + $limit
     
     try
     {
@@ -689,11 +724,11 @@ function oktaGetAppGroups()
     param
     (
         [string]$oOrg,
-        [string]$AppId
+        [string]$aid
     )
         
     [string]$method = "GET"
-    [string]$resource = '/api/v1/apps/' + $AppId + '/groups'
+    [string]$resource = '/api/v1/apps/' + $aid + '/groups'
     
     try
     {
@@ -779,17 +814,17 @@ function oktaListDeprovisionedUsers()
 }
 
 
-function oktaGetPasswordbyID()
+function oktaResetPasswordbyID()
 {
     param
     (
         [string]$oOrg,
-        [string]$userId = $null,
+        [string]$uid = $null,
         [boolean]$sendEmail = $False
     )
     
     [string]$method = "POST"
-    [string]$resource = '/api/v1/users/' + $userId + '/lifecycle/reset_password?sendEmail=' + $sendEmail
+    [string]$resource = '/api/v1/users/' + $uid + '/lifecycle/reset_password?sendEmail=' + $sendEmail
     
     try
     {
@@ -806,15 +841,15 @@ function oktaGetPasswordbyID()
     return $request
 }
 
-function oktaDeactivateuserbyID()
+function oktaDeactivateUserbyID()
 {
     param
     (
         [string]$oOrg,
-        [string]$userId = $null
+        [string]$uid = $null
     )
 
-    [string]$resource = '/api/v1/users/' + $userId + '/lifecycle/deactivate'
+    [string]$resource = '/api/v1/users/' + $uid + '/lifecycle/deactivate'
     [string]$method = "POST"
 
     try
@@ -836,10 +871,10 @@ function oktaActivateUserbyId()
 {
     param
     (
-        [Parameter(Mandatory=$True)][string]$userId,
+        [Parameter(Mandatory=$True)][string]$uid,
         [string]$oOrg
     )
-    [string]$resource = '/api/v1/users/' + $userId + '/lifecycle/activate?sendEmail=False'
+    [string]$resource = '/api/v1/users/' + $uid + '/lifecycle/activate?sendEmail=False'
     [string]$method = "POST"
     try
     {
@@ -861,10 +896,10 @@ function oktaGetAppbyId()
     param
     (
         [string]$oOrg,
-        [string]$appid
+        [string]$aid
     )
 
-    [string]$resource = "/api/v1/apps/" + $appid
+    [string]$resource = "/api/v1/apps/" + $aid
     [string]$method = "GET"
     try
     {
@@ -886,9 +921,9 @@ function oktaGetAppsbyUserId()
     param
     (
         [string]$oOrg,
-        [string]$userId
+        [string]$uid
     )
-    [string]$resource = "/api/v1/users/" + $userId + "/appLinks"
+    [string]$resource = "/api/v1/users/" + $uid + "/appLinks"
     [string]$method = "GET"
 
     try
@@ -911,10 +946,10 @@ function oktaDeleteGroupbyId()
     param
     (
         [string]$oOrg,
-        [string]$groupId
+        [string]$gid
     )
     
-    [string]$resource  = '/api/v1/groups/' + $groupID
+    [string]$resource  = '/api/v1/groups/' + $gid
     [string]$method = "DELETE"
     try
     {
@@ -936,10 +971,10 @@ function oktaGetGroupbyId()
     param
     (
         [string]$oOrg,
-        [string]$groupId
+        [string]$gid
     )
     
-    [string]$resource  = '/api/v1/groups/' + $groupID
+    [string]$resource  = '/api/v1/groups/' + $gid
     [string]$method = "GET"
     
     try
@@ -961,11 +996,11 @@ function oktaGetGroupsbyUserId()
 {
     param
     (
-        [string]$userId,
+        [string]$uid,
         [string]$oOrg
     )
         
-    [string]$resource = "/api/v1/users/" + $userId + "/groups"   
+    [string]$resource = "/api/v1/users/" + $uid + "/groups"   
     [string]$method = "GET"
     try
     {
@@ -987,15 +1022,15 @@ function oktaDelUserFromAllGroups()
     param
     (
         [string]$oOrg,
-        [string]$userId
+        [string]$uid
     )
         
-    $groups = oktaGetGroupsbyUserId -oOrg $oOrg -userId $userId
+    $groups = oktaGetGroupsbyUserId -oOrg $oOrg -userId $uid
     foreach ($og in $groups)
     {
         if ($og.type -eq 'OKTA_GROUP')
         {
-            oktaDelUseridfromGroupid -oOrg $oOrg -userId $userId -groupId $og.id
+            oktaDelUseridfromGroupid -oOrg $oOrg -userId $uid -groupId $og.id
         }
     }
 }
@@ -1056,12 +1091,12 @@ function oktaAddUseridtoGroupid()
 {
     param
     (
-        [string]$userId,
-        [string]$groupId,
+        [string]$uid,
+        [string]$gid,
         [string]$oOrg
     )
         
-    [string]$resource = "/api/v1/groups/" + $groupId + "/users/" + $userId
+    [string]$resource = "/api/v1/groups/" + $gid + "/users/" + $uid
     [string]$method = "PUT"
     try
     {
@@ -1083,11 +1118,11 @@ function oktaDelUseridfromGroupid()
     param
     (
         [string]$oOrg,
-        [string]$userId,
-        [string]$groupId
+        [string]$uid,
+        [string]$gid
     )
         
-    [string]$resource = "/api/v1/groups/" + $groupId + "/users/" + $userId
+    [string]$resource = "/api/v1/groups/" + $gid + "/users/" + $uid
     [string]$method = "DELETE"
     
     try
@@ -1110,11 +1145,11 @@ function oktaDelUseridfromAppid()
     param
     (
         [string]$oOrg,
-        [string]$userId,
-        [string]$appId
+        [string]$uid,
+        [string]$aid
     )
         
-    [string]$resource = "/api/v1/apps/" + $appId + "/users/" + $userId
+    [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
     [string]$method = "DELETE"
     
     try
@@ -1138,9 +1173,9 @@ function oktaGetprofilebyId()
     param
     (
         [string]$oOrg,
-        [string]$userId
+        [string]$uid
     )
-    $profile = (oktaGetUserbyID -oOrg $oOrg -userId $userId).profile
+    $profile = (oktaGetUserbyID -oOrg $oOrg -userId $uid).profile
     return $profile
 }
 
@@ -1148,12 +1183,12 @@ function oktaGetAppProfilebyUserId()
 {
     param
     (
-        [string]$appid,
-        [string]$userid,
+        [string]$aid,
+        [string]$uid,
         [string]$oOrg
     )
         
-    [string]$resource = "/api/v1/apps/" + $appid + "/users/" + $userId
+    [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
     [string]$method = "GET"
     
     try
@@ -1177,12 +1212,12 @@ function oktaGetGroupMembersbyId()
     param
     (
         $oOrg,
-        $groupId,
+        $gid,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
     )
 
-    [string]$resource = "/api/v1/groups/" + $groupId + "/users?limit=" + $limit
+    [string]$resource = "/api/v1/groups/" + $gid + "/users?limit=" + $limit
     [string]$method = "GET"
 
     try
@@ -1204,12 +1239,12 @@ function oktaDeleteUserfromGroup()
 {
     param
     (
-        $userId,
-        $groupId,
+        $uid,
+        $gid,
         $oOrg
     )
 
-    [string]$resource = "/api/v1/groups/" + $groupId + "/users/" + $userId
+    [string]$resource = "/api/v1/groups/" + $gid + "/users/" + $uid
     [string]$method = "DELETE"
 
     try
@@ -1232,23 +1267,23 @@ function oktaSetAppidCredentialUsername()
     param
     (
         [string]$oOrg,
-        [string]$appid,
-        [string]$userid,
+        [string]$aid,
+        [string]$uid,
         [string]$newuserName
     )
     
-    $_cur = oktaGetAppProfilebyUserId -appid $appid -userid $userid -oOrg $oOrg
+    $_cur = oktaGetAppProfilebyUserId -appid $aid -userid $uid -oOrg $oOrg
 
     $psobj = @{
-                'id'          = $userid
+                'id'          = $uid
                 'scope'       = $_cur.scope
                 'credentials' = @{'userName' = $newuserName}
               }
-    [string]$resource = "/api/v1/apps/" + $appid + "/users/" + $userId
+    [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
     [string]$method = "PUT"
     if ($oktaVerbose)
     {
-        write-host Changing username for aid:$appid uid:$userid from $_cur.credentials.userName to $newusername
+        write-host Changing username for aid:$aid uid:$uid from $_cur.credentials.userName to $newusername
     }
     
     try
@@ -1271,9 +1306,9 @@ function oktaUnlockUserbyId()
     param
     (
         [string]$oOrg,
-        [Parameter(Mandatory=$True)][string]$userId
+        [Parameter(Mandatory=$True)][string]$uid
     )
-    [string]$resource = '/api/v1/users/' + $userId + '/lifecycle/unlock'
+    [string]$resource = '/api/v1/users/' + $uid + '/lifecycle/unlock'
     [string]$method = "POST"
     try
     {
@@ -1296,9 +1331,9 @@ function oktaConvertGroupbyId()
     param
     (
         [string]$oOrg,
-        [Parameter(Mandatory=$True)][string]$groupId
+        [Parameter(Mandatory=$True)][string]$gid
     )
-    [string]$resource = '/api/internal/groups/' + $groupId + '/convert'
+    [string]$resource = '/api/internal/groups/' + $gid + '/convert'
     [string]$method = "POST"
     try
     {
@@ -1320,14 +1355,14 @@ function oktaUpdateUserProfilebyID()
     param
     (
         [string]$oOrg,
-        [string]$userId,
+        [string]$uid,
         [object]$UpdatedProfile
     )
 
     $psobj = @{ profile = $UpdatedProfile }
 
     [string]$method = "POST"
-    [string]$resource = "/api/v1/users/" + $userId
+    [string]$resource = "/api/v1/users/" + $uid
     try
     {
         $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
@@ -1348,15 +1383,15 @@ function oktaUpdateAppProfilebyUserId()
     param
     (
         [string]$oOrg,
-        [string]$appid,
-        [string]$userid,
+        [string]$aid,
+        [string]$uid,
         [object]$UpdatedProfile
     )
     
 
     $psobj = @{ profile = $UpdatedProfile }
 
-    [string]$resource = "/api/v1/apps/" + $appid + "/users/" + $userId
+    [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
     [string]$method = "POST"
     
     try
@@ -1379,15 +1414,15 @@ function oktaUpdateAppExternalIdbyUserId()
     param
     (
         [string]$oOrg,
-        [string]$appid,
-        [string]$userid,
+        [string]$aid,
+        [string]$uid,
         [string]$externalId
     )
     
 
     $psobj = @{ externalId = $externalId }
 
-    [string]$resource = "/api/v1/apps/" + $appid + "/users/" + $userId
+    [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
     [string]$method = "POST"
     
     try
