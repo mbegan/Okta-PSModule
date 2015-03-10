@@ -12,7 +12,7 @@ Contents
 ### Getting Started
 * Installation:
 ** Download the module (git clone or download the zip)
-** Place the module in your PSModulePath hint: write-host write-host $env:PSModulePath
+** Place the module in your PSModulePath hint: write-host write-host $env:PSModulePath [Read more] (https://msdn.microsoft.com/en-us/library/dd878324%28v=vs.85%29.aspx)
 * [Getting an API Token](http://developer.okta.com/docs/getting_started/getting_a_token.html)
  You'll need an API token before you can do much
 * Create your org specific settings file, there may be better ways to do this, i couldn't think of any. create a Okta_org.ps1 file
