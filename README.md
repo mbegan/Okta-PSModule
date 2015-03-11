@@ -20,7 +20,7 @@ Write-Host $env:PSModulePath
 4. Create a file called Okta_org.ps1 and save it in the directory with the Okta.psd1 and Okta.psm1 files.
 ```powershell
 <# Okta_org.ps1 #>
-# Verbose will print various infomative bits of information
+# Verbose will print various informative messages
 [Boolean]$oktaVerbose = $true
 # define the default Okta Org you want to use, useful if you have more than one.
 [String]$oktaDefOrg = "prod"
@@ -49,7 +49,7 @@ Write-Host $env:PSModulePath
 #To Use:
 1. Launch powershell (or even better, the powershell ise.
 2. Import the Okta Module
-3. User
+3. Use
 ```powershell 
 PS C:\> Import-Module Okta
 
@@ -69,7 +69,7 @@ profile         : @{email=mbegan@gmail.com; firstName=Matt; lastName=Egan; login
 credentials     : @{password=; recovery_question=; provider=}
 _links          : @{resetPassword=; resetFactors=; expirePassword=; forgotPassword=; changeRecoveryQuestion=; deactivate=; changePassword=}
 ```
-Objects returned are normal powershell objects, you can treat them as such.
+When elements are returned in the API they are powershell objects, you can treat them as such.
 
 An example of something I do often.
 
