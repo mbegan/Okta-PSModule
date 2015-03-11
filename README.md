@@ -1,12 +1,9 @@
 # Okta-PSModule Documentation
 ======================
-
 This is the starting point for documentation on my powershell module/wrapper for the Okta API.
 This is not to be confused with or in competition with the official Okta [Powershell/CSharp module] (https://github.com/okta/oktasdk-csharp/tree/master/Okta.Core.Automation)
 
 I have been building and adding to this for a few years, and I still need the functionality it provides on a near daily basis. I figured it was time to share.
-
-Contents
 --------
 
 ### Getting Started
@@ -46,6 +43,7 @@ Contents
                                }
                         }
     ```
+
 #Example Installation:
 For me this looks like this
 1. Open a command prompt
@@ -63,7 +61,7 @@ notepad Okta_org.ps1
 1. Launch powershell (or even better, the powershell ise.
 2. Import the Okta Module
 3. Use
-```powershell 
+    ```powershell 
 PS C:\> Import-Module Okta
 
 PS C:\> oktaGetUserbyID -oOrg prod -uid mbegan@gmail.com
@@ -81,12 +79,12 @@ passwordChanged : 2015-01-30T23:41:41.000Z
 profile         : @{email=mbegan@gmail.com; firstName=Matt; lastName=Egan; login=mbegan@gmail.com; mobilePhone=; secondEmail=}
 credentials     : @{password=; recovery_question=; provider=}
 _links          : @{resetPassword=; resetFactors=; expirePassword=; forgotPassword=; changeRecoveryQuestion=; deactivate=; changePassword=}
-```
+    ```
 When elements are returned in the API they are powershell objects, you can treat them as such.
 
 An example of something I do often.
 
-```powershell
+   ```powershell
 PS C:\Users\megan> $oktauser = oktaGetUserbyID -oOrg prev -uid mbegan@gmail.com
 [ GET https://varian.oktapreview.com/api/v1/users/mbegan@gmail.com ]
 
@@ -99,7 +97,7 @@ okta.throwaway 00g3hyrge0QfpnvM80h7
 
 PS C:\Users\megan> oktaDeleteUserfromGroup -oOrg prev -uid $oktauser.id -gid $groups[1].id
 [ DELETE https://varian.oktapreview.com/api/v1/groups/00g3hyrge0QfpnvM80h7/users/00u3j3jj2cLstvJL70h7 ]
-```
+   ```
 
 Pretty simple example, i do much more.
 
