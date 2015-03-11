@@ -27,23 +27,23 @@ Contents
 
 [Hashtable]$oktaOrgs = @{
                         prod1 = [Hashtable]@{
-                                            baseUrl  = [String]"https://yourdomain.okta.com"
-                                            secToken = [String]"yourApiToken"
-                                            enablePagination = [boolean]$true
-                                            pageSize = [int]500
-                                           }
+                                baseUrl  = [String]"https://yourdomain.okta.com"
+                                secToken = [String]"yourApiToken"
+                                enablePagination = [boolean]$true
+                                pageSize = [int]500
+                               }
                         prod2 = [Hashtable]@{
-                                            baseUrl  = [String]"https://yourOtherdomain.okta.com"
-                                            secToken = [String]"yourOtherApiToken"
-                                            enablePagination = [boolean]$true
-                                            pageSize = [int]500
-                                           }
+                                baseUrl  = [String]"https://yourOtherdomain.okta.com"
+                                secToken = [String]"yourOtherApiToken"
+                                enablePagination = [boolean]$true
+                                pageSize = [int]500
+                               }
                         prev = [HashTable]@{
-                                            baseUrl  = [String]"https://yourDomain.oktapreview.com"
-                                            secToken = [String]"yourPreviewApiToken"
-                                            enablePagination = [boolean]$true
-                                            pageSize = [int]500
-                                           }
+                                baseUrl  = [String]"https://yourDomain.oktapreview.com"
+                                secToken = [String]"yourPreviewApiToken"
+                                enablePagination = [boolean]$true
+                                pageSize = [int]500
+                               }
                         }
     ```
 5. This is what it looks like for me
