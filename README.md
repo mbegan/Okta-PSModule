@@ -46,7 +46,7 @@ Contents
                                }
                         }
     ```
-#Example Installation
+#Example Installation:
 For me this looks like this
 1. Open a command prompt
     ```
