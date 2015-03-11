@@ -1440,4 +1440,204 @@ function oktaUpdateAppExternalIdbyUserId()
     return $request
 }
 
+function oktaGetFactorsbyUser()
+{
+    param
+    (
+        [string]$oOrg,
+        [string]$uid
+    )
+    
+    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
+    [string]$resource = '/api/v1/users/' + $uid + '/factors'
+    [string]$method = "GET"
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaGetFactorbyUser()
+{
+    param
+    (
+        [string]$oOrg,
+        [string]$uid,
+        [string]$fid
+    )
+    #UrlEncode
+    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
+    [string]$method = "GET"
+    [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaResetFactorbyUser()
+{
+    param
+    (
+        [string]$oOrg,
+        [string]$uid,
+        [string]$fid
+    )
+    #UrlEncode
+    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
+    [string]$method = "DELETE"
+    [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaResetFactorsbyUser()
+{
+    param
+    (
+        [string]$oOrg,
+        [string]$uid
+    )
+    #UrlEncode
+    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
+    [string]$method = "DELETE"
+    [string]$resource = '/api/v1/users/' + $uid + '/factors'
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaResetFactorsbyUser()
+{
+    param
+    (
+        [string]$oOrg,
+        [string]$uid
+    )
+    #UrlEncode
+    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
+    [string]$method = "DELETE"
+    [string]$resource = '/api/v1/users/' + $uid + '/factors'
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaVerifyOTPbyUser()
+{
+    param
+    (
+        [string]$oOrg,
+        [string]$uid,
+        [string]$fid,
+        [string]$otp
+    )
+
+    $psobj = @{ passCode = $otp}
+
+    #UrlEncode
+    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
+    [string]$method = "POST"
+    [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid + '/verify'
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaVerifyMFAnswerbyUser()
+{
+    param
+    (
+        [string]$oOrg,
+        [string]$uid,
+        [string]$fid,
+        [string]$answer
+    )
+
+    $psobj = @{ answer = $answer}
+
+    #UrlEncode
+    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
+    [string]$method = "POST"
+    [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid + '/verify'
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 Export-ModuleMember -Function okta*
