@@ -46,16 +46,18 @@ Contents
                                }
                         }
     ```
-5. This is what it looks like for me
-  1. For me this looks like this
-  2. Open a command prompt
-  3. cd %userprofile%\Documents\WindowsPowerShell\Modules
-  4. git clone https://github.com/mbegan/Okta-PSModule.git Okta
-  5. cd Okta
-  6. notepad Okta_org.ps1
-  7. Paste the basic format for the Okta_org.ps1 file listed below.
-  8. Modify file as required (Update yourdomain, generate your API Key)
-  9. Save the file
+#Example Installation
+For me this looks like this
+1. Open a command prompt
+    ```
+cd %userprofile%\Documents\WindowsPowerShell\Modules
+git clone https://github.com/mbegan/Okta-PSModule.git Okta
+cd Okta
+notepad Okta_org.ps1
+    ```
+2. Paste the basic format for the Okta_org.ps1 file listed below.
+3. Modify file as required (Update yourdomain, generate your API Key)
+4. Save the file
   
 #To Use:
 1. Launch powershell (or even better, the powershell ise.
