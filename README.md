@@ -1,8 +1,9 @@
 # Okta-PSModule Documentation
 ======================
-This is the starting point for documentation on my powershell module/wrapper for the Okta API.
+
 This is not to be confused with or in competition with the official Okta [Powershell/CSharp module] (https://github.com/okta/oktasdk-csharp/tree/master/Okta.Core.Automation)
 This is something I have been building and adding to for a few years. I still need the functionality it provides on a near daily basis so I figured it was time to share.
+
 --------
 
 ### Getting Started
@@ -44,7 +45,6 @@ This is something I have been building and adding to for a few years. I still ne
     ```
 
 #Example Installation:
-For me this looks like this
 1. Open a command prompt
     ```
 cd %userprofile%\Documents\WindowsPowerShell\Modules
@@ -56,8 +56,8 @@ notepad Okta_org.ps1
 3. Modify file as required (Update yourdomain, generate your API Key)
 4. Save the file
   
-#To Use:
-1. Launch powershell (or even better, the powershell ise.
+#Basic Usage:
+1. Launch powershell \(or even better, the powershell ise\)
 2. Import the Okta Module
 3. Use
     ```powershell 
