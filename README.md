@@ -2,8 +2,7 @@
 ======================
 This is the starting point for documentation on my powershell module/wrapper for the Okta API.
 This is not to be confused with or in competition with the official Okta [Powershell/CSharp module] (https://github.com/okta/oktasdk-csharp/tree/master/Okta.Core.Automation)
-
-I have been building and adding to this for a few years, and I still need the functionality it provides on a near daily basis. I figured it was time to share.
+This is something I have been building and adding to for a few years. I still need the functionality it provides on a near daily basis so I figured it was time to share.
 --------
 
 ### Getting Started
@@ -13,8 +12,8 @@ I have been building and adding to this for a few years, and I still need the fu
     ```powershell
     Write-Host $env:PSModulePath
     ```
-3. [Getting an API Token](http://developer.okta.com/docs/getting_started/getting_a_token.html) "You'll need an API token before you can do anything"
-4. Create a file called Okta_org.ps1 and save it in the directory with the Okta.psd1 and Okta.psm1 files.
+3. Get an API Token for your Okta Org [Getting an API Token](http://developer.okta.com/docs/getting_started/getting_a_token.html)
+4. Create a file called Okta_org.ps1 (example content below) and save it in the directory with the Okta.psd1 and Okta.psm1 files.
     ```powershell
 <# Okta_org.ps1 #>
 # Verbose will print various informative messages
