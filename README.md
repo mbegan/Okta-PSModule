@@ -18,7 +18,7 @@ Contents
     ```
 3. [Getting an API Token](http://developer.okta.com/docs/getting_started/getting_a_token.html) "You'll need an API token before you can do anything"
 4. Create a file called Okta_org.ps1 and save it in the directory with the Okta.psd1 and Okta.psm1 files.
-```powershell
+    ```powershell
 <# Okta_org.ps1 #>
 # Verbose will print various informative messages
 [Boolean]$oktaVerbose = $true
@@ -45,7 +45,7 @@ Contents
                                             pageSize = [int]500
                                            }
                         }
-```
+    ```
 5. This is what it looks like for me
   1. For me this looks like this
   2. Open a command prompt
