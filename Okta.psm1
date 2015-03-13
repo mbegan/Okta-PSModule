@@ -112,7 +112,7 @@ function _oktaNewCall()
     }
     $request = [System.Net.HttpWebRequest]::CreateHttp($URI)
     $request.Method = $method
-    if ($oktaVerbose) { write-host '[' $request.Method $request.RequestUri ']' -ForegroundColor Cyan}
+    if ($oktaVerbose) { Write-Host '[' $request.Method $request.RequestUri ']' -ForegroundColor Cyan}
 
     $request.Accept = $encoding
     $request.UserAgent = "oktaSpecific PowerShell script(V2)"
@@ -127,7 +127,7 @@ function _oktaNewCall()
     if ( ($method -eq "POST") -or ($method -eq "PUT") )
     {
         $postData = ConvertTo-Json $body
-        if ($oktaVerbose) { write-host $postData -ForegroundColor Cyan }
+        if ($oktaVerbose) { Write-Host $postData -ForegroundColor Cyan }
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($postData)
         $request.ContentType = $encoding
         $request.ContentLength = $bytes.Length
@@ -165,7 +165,6 @@ function _oktaNewCall()
         }
         catch
         {
-            Write-Host "Catch 1"
             throw "Json Exception : " + $txt
         }
     }
@@ -179,8 +178,7 @@ function _oktaNewCall()
     }
     catch
     {
-        write-host "catch 22?"
-        $_ | select *
+        throw $_
     }
     finally
     {
@@ -194,16 +192,17 @@ function _oktaNewCall()
     }
     if (($link.next) -and ($enablePagination))
     {
-        Write-Host 'looping...'
+        if ($oktaVerbose) { Write-Host "fetching next page 1 : " -ForegroundColor Cyan -NoNewline}
         switch ($method)
         {
             'GET'
             {
-                _oktaRecGet -url $link.next -col $psobj -oOrg $oOrg -loopcount 1  
+                _oktaRecGet -url $link.next -col $psobj -oOrg $oOrg -loopcount 1
+                continue     
             }
             DEFAULT
             {
-                'I have no case to do what you are asking this'
+                throw ("undefined method for pagination: $method")
             }
         }
     } else {
@@ -230,7 +229,7 @@ function _oktaRecGet()
 
     $request = [System.Net.HttpWebRequest]::CreateHttp($url)
     $request.Method = 'GET'
-    if ($oktaVerbose) { write-host '[' $request.Method $request.RequestUri ']' -ForegroundColor Cyan}
+    if ($oktaVerbose) { Write-Host '[' $request.Method $request.RequestUri ']' -ForegroundColor Cyan}
 
     $request.Accept = $encoding
     $request.UserAgent = "oktaSpecific PowerShell script(V2)"
@@ -271,7 +270,6 @@ function _oktaRecGet()
         }
         catch
         {
-            Write-Host "Catch 1"
             throw "Json Exception : " + $txt
         }
     }
@@ -285,8 +283,7 @@ function _oktaRecGet()
     }
     catch
     {
-        write-host "catch 22?"
-        $_ | select *
+        throw $_
     }
     finally
     {
@@ -298,10 +295,11 @@ function _oktaRecGet()
         $sr = $null
         $outputStream = $null
     }
-    if (($link.next) -and ($enablePagination))
+    if ($link.next)
     {
-        Write-Host looping: $loopcount
-        _oktaRecGet -url $link.next -col $col -loopcount ($loopcount+1) -oOrg $oOrg    
+        $loopcount++
+        if ($oktaVerbose) { Write-Host "fetching next page $loopcount : " -ForegroundColor Cyan -NoNewline}
+        _oktaRecGet -url $link.next -col $col -loopcount $loopcount -oOrg $oOrg    
     } else {
         return $col
     }
@@ -347,7 +345,7 @@ function oktaNewUser()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -375,7 +373,7 @@ function oktaChangeProfilebyID()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -404,7 +402,7 @@ function oktaPutProfileupdate()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -450,7 +448,7 @@ function oktaUpdateUserbyID()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -481,7 +479,7 @@ function oktaChangePasswordbyID()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -508,7 +506,7 @@ function oktaAdminExpirePasswordbyID()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -538,7 +536,7 @@ function oktaAdminUpdatePasswordbyID()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -568,7 +566,7 @@ function oktaForgotPasswordbyId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -620,7 +618,7 @@ function oktaCheckCreds()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -648,7 +646,7 @@ function oktaGetUserbyID()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -677,7 +675,7 @@ function oktaGetUsersbyAppID()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -703,7 +701,7 @@ function oktaGetActiveApps()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -738,7 +736,7 @@ function oktaGetAppGroups()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -766,7 +764,7 @@ function oktaListUsersbyQuery()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -793,7 +791,7 @@ function oktaListUsersbyStatus()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -834,7 +832,7 @@ function oktaResetPasswordbyID()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -860,7 +858,7 @@ function oktaDeactivateUserbyID()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -884,7 +882,7 @@ function oktaActivateUserbyId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -909,7 +907,7 @@ function oktaGetAppbyId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -934,7 +932,7 @@ function oktaGetAppsbyUserId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -959,9 +957,9 @@ function oktaDeleteGroupbyId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -985,9 +983,9 @@ function oktaGetGroupbyId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1010,9 +1008,9 @@ function oktaGetGroupsbyUserId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1054,9 +1052,9 @@ function oktaGetGroupsbyquery()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1080,9 +1078,9 @@ function oktaGetGroupsAll()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1106,9 +1104,9 @@ function oktaAddUseridtoGroupid()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1133,9 +1131,9 @@ function oktaDelUseridfromGroupid()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1160,9 +1158,9 @@ function oktaDelUseridfromAppid()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1199,9 +1197,9 @@ function oktaGetAppProfilebyUserId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1228,9 +1226,9 @@ function oktaGetGroupMembersbyId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1255,9 +1253,9 @@ function oktaDeleteUserfromGroup()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1283,7 +1281,7 @@ function oktaSetAppidCredentialUsername()
     [string]$method = "PUT"
     if ($oktaVerbose)
     {
-        write-host Changing username for aid:$aid uid:$uid from $_cur.credentials.userName to $newusername
+        Write-Host Changing username for aid:$aid uid:$uid from $_cur.credentials.userName to $newusername
     }
     
     try
@@ -1294,9 +1292,9 @@ function oktaSetAppidCredentialUsername()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1319,9 +1317,9 @@ function oktaUnlockUserbyId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1343,9 +1341,9 @@ function oktaConvertGroupbyId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1371,7 +1369,7 @@ function oktaUpdateUserProfilebyID()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -1402,9 +1400,9 @@ function oktaUpdateAppProfilebyUserId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1433,9 +1431,9 @@ function oktaUpdateAppExternalIdbyUserId()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
-        throw $error[0]
+        throw $_
     }
     return $request
 }
@@ -1459,7 +1457,7 @@ function oktaGetFactorsbyUser()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -1487,7 +1485,7 @@ function oktaGetFactorbyUser()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -1515,7 +1513,7 @@ function oktaResetFactorbyUser()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -1542,7 +1540,7 @@ function oktaResetFactorsbyUser()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -1569,7 +1567,7 @@ function oktaResetFactorsbyUser()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -1601,7 +1599,7 @@ function oktaVerifyOTPbyUser()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
@@ -1633,7 +1631,7 @@ function oktaVerifyMFAnswerbyUser()
     {
         if ($oktaVerbose -eq $true)
         {
-            write-host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
     }
