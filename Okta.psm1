@@ -1211,7 +1211,11 @@ function oktaGetMasterProfile()
         [string]$uid,
         [string]$oOrg
     )
-
+    <#
+        currently requires profile master to be defined in Okta_org.ps1
+        Need to enhance to 'discover' the profile master. Nothing eloquent
+        comes to mind at time of writing.
+    #>
     $aid = $oktaOrgs[$oOrg].ProfileMaster
     oktaGetAppProfilebyUserId -aid $aid -uid $uid -oOrg $oOrg
 }
@@ -1540,49 +1544,15 @@ function oktaResetFactorsbyUser()
     )
     #UrlEncode
     $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
-    [string]$method = "DELETE"
-    [string]$resource = '/api/v1/users/' + $uid + '/factors'
-    
-    try
-    {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
-    }
-    catch
-    {
-        if ($oktaVerbose -eq $true)
-        {
-            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
-        }
-        throw $_
-    }
-    return $request
-}
 
-function oktaResetFactorsbyUser()
-{
-    param
-    (
-        [string]$oOrg,
-        [string]$uid
-    )
-    #UrlEncode
-    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
-    [string]$method = "DELETE"
-    [string]$resource = '/api/v1/users/' + $uid + '/factors'
-    
-    try
+    $factors = oktaGetFactorsbyUser -oOrg $oOrg -uid $uid
+    $freset = New-Object System.Collections.ArrayList
+    foreach ($factor in $factors)
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+        $_c = $freset.add( (oktaResetFactorbyUser -oOrg $oOrg -uid $uid -fid $factor.id) )
     }
-    catch
-    {
-        if ($oktaVerbose -eq $true)
-        {
-            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
-        }
-        throw $_
-    }
-    return $request
+
+    return $freset
 }
 
 function oktaVerifyOTPbyUser()
