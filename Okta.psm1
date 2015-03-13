@@ -1204,6 +1204,17 @@ function oktaGetAppProfilebyUserId()
     return $request
 }
 
+function oktaGetMasterProfile()
+{
+    param
+    (
+        [string]$uid,
+        [string]$oOrg
+    )
+
+    $aid = $oktaOrgs[$oOrg].ProfileMaster
+    oktaGetAppProfilebyUserId -aid $aid -uid $uid -oOrg $oOrg
+}
 
 function oktaGetGroupMembersbyId()
 {
