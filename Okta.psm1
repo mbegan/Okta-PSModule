@@ -98,10 +98,16 @@ function _oktaNewCall()
         [boolean]$enablePagination = $OktaOrgs[$oOrg].enablePagination
     )
 
-    [HashTable]$headers = @{ 'Authorization'    =   'SSWS ' + ($OktaOrgs[$oOrg].secToken).ToString()
-                             'Accept-Charset'   =   'ISO-8859-1,utf-8'
-                             'Accept-Language'  =   'en-US'
-                             'Accept-Encoding'  =   'gzip,deflate' }
+    $headers = New-Object System.Collections.Hashtable
+    if ($OktaOrgs[$oOrg].encToken)
+    {
+        $_c = $headers.add('Authorization',('SSWS ' + ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR( (ConvertTo-SecureString -string ($OktaOrgs[$oOrg].encToken).ToString()) ) ))))
+    } else {
+        $_c = $headers.add('Authorization',('SSWS ' + ($OktaOrgs[$oOrg].secToken).ToString()) )
+    }
+    $_c = $headers.add('Accept-Charset','ISO-8859-1,utf-8')
+    $_c = $headers.add('Accept-Language','en-US')
+    $_c = $headers.add('Accept-Encoding','gzip,deflate')
 
     [string]$encoding = "application/json"
     if ($resource -like 'https://*')
