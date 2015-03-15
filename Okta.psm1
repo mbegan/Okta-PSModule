@@ -228,7 +228,7 @@ function _oktaRecGet()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
         [string]$url,
         [array]$col,
         [int]$loopcount = 0
@@ -323,7 +323,7 @@ function oktaNewUser()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
         [string]$login,
         [string]$password,
         [string]$email,
@@ -370,8 +370,8 @@ function oktaChangeProfilebyID()
 {
     param
     (
-        [Parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [Parameter(Mandatory=$true)][hashtable]$newprofile
     )
 
@@ -398,8 +398,8 @@ function oktaPutProfileupdate()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [object]$updates
     )
 
@@ -427,8 +427,8 @@ function oktaUpdateUserbyID()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [string]$login,
         [string]$password,
         [string]$email,
@@ -473,8 +473,8 @@ function oktaChangePasswordbyID()
 {
    param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [string]$new_password,
         [string]$old_password
     )
@@ -504,8 +504,8 @@ function oktaAdminExpirePasswordbyID()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [string]$tempPassword=(oktaNewPassword)
     )
     $psobj = @{ "tempPassword" = $tempPassword }
@@ -531,8 +531,8 @@ function oktaAdminUpdatePasswordbyID()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [string]$password
     )
     $psobj = @{
@@ -561,8 +561,8 @@ function oktaForgotPasswordbyId()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [string]$r_answer,
         [string]$new_password
     )
@@ -612,7 +612,7 @@ function oktaCheckCreds()
 
     param
     (
-        [Parameter(Mandatory=$false)][parameter(Mandatory=$true)][String[]]$oOrg,
+        [Parameter(Mandatory=$false)][parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
         [Parameter(Mandatory=$true)][string]$username,
         [Parameter(Mandatory=$true)][string]$password
     )
@@ -643,7 +643,7 @@ function oktaGetUserbyID()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
         [parameter(Mandatory=$true)][alias("uid")][ValidateLength(1,100)][String[]]$userName
     )
     #UrlEncode
@@ -671,8 +671,8 @@ function oktaGetUsersbyAppID()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$aid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$aid,
         [int]$limit=$OktaOrgs[$oOrg].pageSize
     )
     
@@ -698,7 +698,7 @@ function oktaGetActiveApps()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
         [int]$limit=$OktaOrgs[$oOrg].pageSize
     )
             
@@ -733,8 +733,8 @@ function oktaGetAppGroups()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$aid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$aid
     )
         
     [string]$method = "GET"
@@ -760,7 +760,7 @@ function oktaListUsersbyQuery()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
         [string]$Query = $null,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
@@ -787,7 +787,7 @@ function oktaListUsersbyStatus()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
         [string]$status,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
@@ -815,7 +815,7 @@ function oktaListDeprovisionedUsers()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
     )
@@ -828,8 +828,8 @@ function oktaResetPasswordbyID()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [boolean]$sendEmail = $False
     )
     
@@ -855,8 +855,8 @@ function oktaDeactivateUserbyID()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid
     )
 
     [string]$resource = '/api/v1/users/' + $uid + '/lifecycle/deactivate'
@@ -882,7 +882,7 @@ function oktaActivateUserbyId()
     param
     (
         [Parameter(Mandatory=$True)][string]$uid,
-        [parameter(Mandatory=$true)][String[]]$oOrg
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg
     )
     [string]$resource = '/api/v1/users/' + $uid + '/lifecycle/activate?sendEmail=False'
     [string]$method = "POST"
@@ -905,8 +905,8 @@ function oktaGetAppbyId()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$aid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$aid
     )
 
     [string]$resource = "/api/v1/apps/" + $aid
@@ -930,8 +930,8 @@ function oktaGetAppsbyUserId()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid
     )
     [string]$resource = "/api/v1/users/" + $uid + "/appLinks"
     [string]$method = "GET"
@@ -955,8 +955,8 @@ function oktaDeleteGroupbyId()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$gid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$gid
     )
     
     [string]$resource  = '/api/v1/groups/' + $gid
@@ -980,8 +980,8 @@ function oktaGetGroupbyId()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$gid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$gid
     )
     
     [string]$resource  = '/api/v1/groups/' + $gid
@@ -1006,8 +1006,8 @@ function oktaGetGroupsbyUserId()
 {
     param
     (
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
-        [parameter(Mandatory=$true)][String[]]$oOrg
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg
     )
         
     [string]$resource = "/api/v1/users/" + $uid + "/groups"   
@@ -1031,8 +1031,8 @@ function oktaDelUserFromAllGroups()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid
     )
         
     $groups = oktaGetGroupsbyUserId -oOrg $oOrg -userId $uid
@@ -1050,7 +1050,7 @@ function oktaGetGroupsbyquery()
     param
     (
         [parameter(Mandatory=$true)][String[]]$query,
-        [parameter(Mandatory=$true)][String[]]$oOrg
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg
     )
        
     [string]$resource = "/api/v1/groups?q=" + $query 
@@ -1075,7 +1075,7 @@ function oktaGetGroupsAll()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
         [int]$limit=$OktaOrgs[$oOrg].pageSize
     )
        
@@ -1101,9 +1101,9 @@ function oktaAddUseridtoGroupid()
 {
     param
     (
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$gid,
-        [parameter(Mandatory=$true)][String[]]$oOrg
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$gid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg
     )
         
     [string]$resource = "/api/v1/groups/" + $gid + "/users/" + $uid
@@ -1127,9 +1127,9 @@ function oktaDelUseridfromGroupid()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$gid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$gid
     )
         
     [string]$resource = "/api/v1/groups/" + $gid + "/users/" + $uid
@@ -1154,9 +1154,9 @@ function oktaDelUseridfromAppid()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$aid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$aid
     )
         
     [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
@@ -1182,8 +1182,8 @@ function oktaGetprofilebyId()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid
     )
     $profile = (oktaGetUserbyID -oOrg $oOrg -userId $uid).profile
     return $profile
@@ -1193,9 +1193,9 @@ function oktaGetAppProfilebyUserId()
 {
     param
     (
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$aid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
-        [parameter(Mandatory=$true)][String[]]$oOrg
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$aid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg
     )
         
     [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
@@ -1220,8 +1220,8 @@ function oktaGetMasterProfile()
 {
     param
     (
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
-        [parameter(Mandatory=$true)][String[]]$oOrg
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg
     )
     <#
         currently requires profile master to be defined in Okta_org.ps1
@@ -1236,8 +1236,8 @@ function oktaGetGroupMembersbyId()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$gid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$gid,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
     )
@@ -1264,9 +1264,9 @@ function oktaDeleteUserfromGroup()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$gid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$gid
     )
 
     [string]$resource = "/api/v1/groups/" + $gid + "/users/" + $uid
@@ -1291,9 +1291,9 @@ function oktaSetAppidCredentialUsername()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$aid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$aid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [parameter(Mandatory=$true)][string]$newuserName
     )
     
@@ -1330,8 +1330,8 @@ function oktaUnlockUserbyId()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid
     )
     [string]$resource = '/api/v1/users/' + $uid + '/lifecycle/unlock'
     [string]$method = "POST"
@@ -1355,8 +1355,8 @@ function oktaConvertGroupbyId()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$gid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$gid
     )
     [string]$resource = '/api/internal/groups/' + $gid + '/convert'
     [string]$method = "POST"
@@ -1379,8 +1379,8 @@ function oktaUpdateUserProfilebyID()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [parameter(Mandatory=$true)][object]$UpdatedProfile
     )
 
@@ -1407,9 +1407,9 @@ function oktaUpdateAppProfilebyUserId()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$aid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$aid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [parameter(Mandatory=$true)][object]$UpdatedProfile
     )
     
@@ -1438,9 +1438,9 @@ function oktaUpdateAppExternalIdbyUserId()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$aid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$aid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [parameter(Mandatory=$true)][string]$externalId
     )
     
@@ -1469,8 +1469,8 @@ function oktaGetFactorsbyUser()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid
     )
     
     [string]$resource = '/api/v1/users/' + $uid + '/factors'
@@ -1494,9 +1494,9 @@ function oktaGetFactorbyUser()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$fid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$fid
     )
 
     [string]$method = "GET"
@@ -1521,9 +1521,9 @@ function oktaResetFactorbyUser()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$fid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$fid
     )
 
     [string]$method = "DELETE"
@@ -1548,8 +1548,8 @@ function oktaResetFactorsbyUser()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid
     )
 
     $factors = oktaGetFactorsbyUser -oOrg $oOrg -uid $uid
@@ -1566,9 +1566,9 @@ function oktaVerifyOTPbyUser()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$fid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$fid,
         [parameter(Mandatory=$true)][String[]]$otp
     )
 
@@ -1596,9 +1596,9 @@ function oktaVerifyMFAnswerbyUser()
 {
     param
     (
-        [parameter(Mandatory=$true)][String[]]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$fid,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$fid,
         [parameter(Mandatory=$true)][String[]]$answer
     )
 
