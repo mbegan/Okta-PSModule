@@ -49,6 +49,11 @@ function oktaExternalIdtoGUID()
     return $guid
 }
 
+function oktaConverttoSecureString()
+{
+    return (ConvertFrom-SecureString -SecureString (Get-Credential -Message 'Paste the API Token in Password Box' "User Name Doesn't Matter").Password)
+}
+
 function oktaProcessHeaderLink()
 {
     param
