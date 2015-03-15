@@ -1,9 +1,12 @@
-﻿#a comment here
+﻿#using the httputility from system.web
+[System.Reflection.Assembly]::LoadWithPartialName("System.Web") | out-null
 
-#using the httputility from system.web
-[System.Reflection.Assembly]::LoadWithPartialName("System.Web") | out-null 
+$ExecutionContext.SessionState.Module.OnRemove = {
+    Remove-Module Okta_org
+}
 
-function oktaNewPassword {
+function oktaNewPassword
+{
     param
     (
         [Int32]$Length = 15,
