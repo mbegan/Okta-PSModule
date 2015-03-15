@@ -675,8 +675,6 @@ function oktaGetUsersbyAppID()
         [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$aid,
         [int]$limit=$OktaOrgs[$oOrg].pageSize
     )
-    #UrlEncode
-    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
     
     [string]$method = "GET"
     [string]$resource = "/api/v1/apps/" + $aid + "/users?limit=" + $limit
@@ -1475,7 +1473,6 @@ function oktaGetFactorsbyUser()
         [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid
     )
     
-    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
     [string]$resource = '/api/v1/users/' + $uid + '/factors'
     [string]$method = "GET"
     try
@@ -1501,8 +1498,7 @@ function oktaGetFactorbyUser()
         [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
         [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$fid
     )
-    #UrlEncode
-    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
+
     [string]$method = "GET"
     [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid
     
@@ -1529,8 +1525,7 @@ function oktaResetFactorbyUser()
         [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid,
         [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$fid
     )
-    #UrlEncode
-    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
+
     [string]$method = "DELETE"
     [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid
     
@@ -1556,8 +1551,6 @@ function oktaResetFactorsbyUser()
         [parameter(Mandatory=$true)][String[]]$oOrg,
         [parameter(Mandatory=$true)][ValidateLength(20)][String[]]$uid
     )
-    #UrlEncode
-    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
 
     $factors = oktaGetFactorsbyUser -oOrg $oOrg -uid $uid
     $freset = New-Object System.Collections.ArrayList
@@ -1581,8 +1574,6 @@ function oktaVerifyOTPbyUser()
 
     $psobj = @{ passCode = $otp}
 
-    #UrlEncode
-    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
     [string]$method = "POST"
     [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid + '/verify'
     
@@ -1613,8 +1604,6 @@ function oktaVerifyMFAnswerbyUser()
 
     $psobj = @{ answer = $answer}
 
-    #UrlEncode
-    $uid = [System.Web.HttpUtility]::UrlPathEncode($uid)
     [string]$method = "POST"
     [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid + '/verify'
     
