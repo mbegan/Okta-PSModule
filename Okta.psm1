@@ -5,6 +5,31 @@ $ExecutionContext.SessionState.Module.OnRemove = {
     Remove-Module Okta_org
 }
 
+function _oktaThrowError()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][String]$text
+    )
+
+    try
+    {
+        $OktaSays = ConvertFrom-Json -InputObject $text
+    }
+    catch
+    {
+        throw $text
+    }
+    <# Can't decide what to throw here... #>
+    <# Highly subject to change... #>
+    #throw ("::" + $OktaSays.errorCode.ToString() + ":: " + $OktaSays.errorSummary.ToString() )
+    #throw $OktaSays
+    $formatError = New-Object System.FormatException -ArgumentList ($OktaSays.errorCode + " : " + $OktaSays.errorSummary)
+    $formatError.HelpLink = $text
+    $formatError.Source = $Error[0].Exception
+    throw $formatError
+}
+
 function oktaNewPassword
 {
     param
@@ -188,7 +213,7 @@ function _oktaNewCall()
         $sr = New-Object System.IO.StreamReader($response.GetResponseStream())
         $txt = $sr.ReadToEnd()
         $sr.Close()
-        throw $txt
+        _oktaThrowError -text $txt
     }
     catch
     {
@@ -293,7 +318,7 @@ function _oktaRecGet()
         $sr = New-Object System.IO.StreamReader($response.GetResponseStream())
         $txt = $sr.ReadToEnd()
         $sr.Close()
-        throw $txt
+        _oktaThrowError -text $txt
     }
     catch
     {
