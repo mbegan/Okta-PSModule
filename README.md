@@ -118,6 +118,7 @@ I'll add more details on usage later, if you have a specific use case ask away i
 - oktaChangeProfilebyID
 - oktaCheckCreds
 - oktaConvertGroupbyId
+- oktaConverttoSecureString
 - oktaDeactivateUserbyID
 - oktaDeleteGroupbyId
 - oktaDeleteUserfromGroup
@@ -138,6 +139,7 @@ I'll add more details on usage later, if you have a specific use case ask away i
 - oktaGetGroupsAll
 - oktaGetGroupsbyquery
 - oktaGetGroupsbyUserId
+- oktaGetMasterProfile
 - oktaGetprofilebyId
 - oktaGetUserbyID
 - oktaGetUsersbyAppID
