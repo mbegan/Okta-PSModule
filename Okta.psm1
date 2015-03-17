@@ -127,7 +127,7 @@ function _oktaNewCall()
         [parameter(Mandatory=$true)][ValidateScript({_testOrg -org $_})][String[]]$oOrg,
         [String]$method,
         [String]$resource,
-        [HashTable]$body = @{},
+        [Object]$body = @{},
         [boolean]$enablePagination = $OktaOrgs[$oOrg].enablePagination
     )
 
@@ -926,6 +926,35 @@ function oktaActivateUserbyId()
     return $request
 }
 
+function oktaUpdateApp()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$aid,
+        [parameter(Mandatory=$true)][object]$app
+    )
+
+    $psobj = $app
+
+    [string]$resource = "/api/v1/apps/" + $aid
+    [string]$method = "PUT"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaGetAppbyId()
 {
     param
@@ -952,6 +981,36 @@ function oktaGetAppbyId()
 }
 
 function oktaGetAppsbyUserId()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [switch]$expand
+    )
+    [string]$resource = '/api/v1/apps?filter=user.id+eq+"' + $uid + '"'
+    if ($expand)
+    {
+        $resource += "&expand=user/" + $uid
+    }
+    [string]$method = "GET"
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaGetAppLinksbyUserId()
 {
     param
     (
@@ -1438,7 +1497,6 @@ function oktaUpdateAppProfilebyUserId()
         [parameter(Mandatory=$true)][object]$UpdatedProfile
     )
     
-
     $psobj = @{ profile = $UpdatedProfile }
 
     [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
