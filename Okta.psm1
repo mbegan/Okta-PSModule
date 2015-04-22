@@ -1652,10 +1652,15 @@ function oktaVerifyOTPbyUser()
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$fid,
-        [parameter(Mandatory=$true)][String[]]$otp
+        [parameter(Mandatory=$false)][String]$otp
     )
 
-    $psobj = @{ passCode = $otp}
+    if ($otp)
+    {
+        $psobj = @{ passCode = $otp}
+    } else {
+        $psobj = @{ }
+    }
 
     [string]$method = "POST"
     [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid + '/verify'
@@ -1682,7 +1687,7 @@ function oktaVerifyMFAnswerbyUser()
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$fid,
-        [parameter(Mandatory=$true)][String[]]$answer
+        [parameter(Mandatory=$true)][String]$answer
     )
 
     $psobj = @{ answer = $answer}
