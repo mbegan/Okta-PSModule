@@ -259,10 +259,16 @@ function _oktaRecGet()
         [int]$loopcount = 0
     )
 
-    [HashTable]$headers = @{ 'Authorization'    =   'SSWS ' + ($OktaOrgs[$oOrg].secToken).ToString()
-                             'Accept-Charset'   =   'ISO-8859-1,utf-8'
-                             'Accept-Language'  =   'en-US'
-                             'Accept-Encoding'  =   'gzip,deflate' }
+    $headers = New-Object System.Collections.Hashtable
+    if ($OktaOrgs[$oOrg].encToken)
+    {
+        $_c = $headers.add('Authorization',('SSWS ' + ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR( (ConvertTo-SecureString -string ($OktaOrgs[$oOrg].encToken).ToString()) ) ))))
+    } else {
+        $_c = $headers.add('Authorization',('SSWS ' + ($OktaOrgs[$oOrg].secToken).ToString()) )
+    }
+    $_c = $headers.add('Accept-Charset','ISO-8859-1,utf-8')
+    $_c = $headers.add('Accept-Language','en-US')
+    $_c = $headers.add('Accept-Encoding','gzip,deflate')
 
     [string]$encoding = "application/json"
 
@@ -550,6 +556,38 @@ function oktaAdminExpirePasswordbyID()
         throw $_
     }
     return $request    
+}
+
+function oktaAdminUpdateQandAbyID()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid,
+        [parameter(Mandatory=$true)][string]$question,
+        [parameter(Mandatory=$true)][string]$answer
+    )
+
+    $psobj = @{
+                "credentials" = @{
+                    "recovery_question" = @{ "question" = $question; "answer" = $answer }
+                }
+              }
+    [string]$method = "PUT"
+    [string]$resource = "/api/v1/users/" + $uid
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
 }
 
 function oktaAdminUpdatePasswordbyID()
