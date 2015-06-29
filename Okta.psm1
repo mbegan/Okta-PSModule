@@ -914,6 +914,32 @@ function oktaResetPasswordbyID()
     return $request
 }
 
+function oktaConvertUsertoFederation()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String[]]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String[]]$uid
+    )
+    
+    [string]$method = "POST"
+    [string]$resource = '/api/v1/users/' + $uid + '/lifecycle/reset_password?provider=FEDERATION&sendEmail=false'
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaDeactivateUserbyID()
 {
     param
