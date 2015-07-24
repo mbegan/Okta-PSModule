@@ -1555,12 +1555,18 @@ function oktaUpdateUserProfilebyID()
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][object]$UpdatedProfile
+        [parameter(Mandatory=$true)][alias("newProfile","updatedProfile")][object]$Profile,
+        [switch]$partial
     )
 
-    $psobj = @{ profile = $UpdatedProfile }
+    $psobj = @{ profile = $Profile }
 
-    [string]$method = "POST"
+    if ($partial)
+    {
+        [string]$method = "POST"
+    } else {
+        [string]$method = "PUT"
+    }
     [string]$resource = "/api/v1/users/" + $uid
     try
     {
