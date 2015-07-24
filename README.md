@@ -114,11 +114,13 @@ I'll add more details on usage later, if you have a specific use case ask away i
 - oktaAddUseridtoGroupid
 - oktaAdminExpirePasswordbyID
 - oktaAdminUpdatePasswordbyID
+- oktaAdminUpdateQandAbyID
 - oktaChangePasswordbyID
 - oktaChangeProfilebyID
 - oktaCheckCreds
 - oktaConvertGroupbyId
 - oktaConverttoSecureString
+- oktaConvertUsertoFederation
 - oktaDeactivateUserbyID
 - oktaDeleteGroupbyId
 - oktaDeleteUserfromGroup
@@ -130,6 +132,7 @@ I'll add more details on usage later, if you have a specific use case ask away i
 - oktaGetActiveApps
 - oktaGetAppbyId
 - oktaGetAppGroups
+- oktaGetAppLinksbyUserId
 - oktaGetAppProfilebyUserId
 - oktaGetAppsbyUserId
 - oktaGetFactorbyUser
@@ -141,8 +144,14 @@ I'll add more details on usage later, if you have a specific use case ask away i
 - oktaGetGroupsbyUserId
 - oktaGetMasterProfile
 - oktaGetprofilebyId
+- oktaGetProfileMappingBySchema
+- oktaGetRolesByUserId
+- oktaGetSchemabyID
+- oktaGetTypebyID
+- oktaGetTypes
 - oktaGetUserbyID
 - oktaGetUsersbyAppID
+- oktaGetUserSchemabyType
 - oktaListDeprovisionedUsers
 - oktaListUsersbyQuery
 - oktaListUsersbyStatus
@@ -155,6 +164,7 @@ I'll add more details on usage later, if you have a specific use case ask away i
 - oktaResetPasswordbyID
 - oktaSetAppidCredentialUsername
 - oktaUnlockUserbyId
+- oktaUpdateApp
 - oktaUpdateAppExternalIdbyUserId
 - oktaUpdateAppProfilebyUserId
 - oktaUpdateUserbyID
