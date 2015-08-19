@@ -675,7 +675,7 @@ function oktaCheckCreds()
 
     param
     (
-        [Parameter(Mandatory=$false)][parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
         [Parameter(Mandatory=$true)][string]$username,
         [Parameter(Mandatory=$true)][string]$password
     )
@@ -1259,6 +1259,34 @@ function oktaGetRolesByUserId()
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaAddUsertoRoles()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [Parameter(Mandatory=$true)][ValidateSet("SUPER_ADMIN","ORG_ADMIN","APP_ADMIN","USER_ADMIN","READ_ONLY_ADMIN")][String]$roleType
+    )
+       
+    [string]$resource = "/api/v1/users/" + $uid + "/roles"
+    [string]$method = "POST"
+    $psobj = @{ "type" = $roleType }
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
     }
     catch
     {
