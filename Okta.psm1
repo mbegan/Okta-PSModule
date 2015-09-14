@@ -819,6 +819,32 @@ function oktaGetAppGroups()
     return $request
 }
 
+function oktaListUsers()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [int]$limit=$OktaOrgs[$oOrg].pageSize,
+        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
+    )
+    
+    [string]$resource = '/api/v1/users' + '?limit=' + $limit
+    [string]$method = "GET"
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaListUsersbyQuery()
 {
     param
