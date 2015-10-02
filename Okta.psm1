@@ -22,9 +22,13 @@ function _oktaThrowError()
     }
     <# Can't decide what to throw here... #>
     <# Highly subject to change... #>
-    #throw ("::" + $OktaSays.errorCode.ToString() + ":: " + $OktaSays.errorSummary.ToString() )
-    #throw $OktaSays
-    $formatError = New-Object System.FormatException -ArgumentList ($OktaSays.errorCode + " : " + $OktaSays.errorSummary)
+    if ($OktaSays.errorCauses[0].errorSummary)
+    {
+        $formatError = New-Object System.FormatException -ArgumentList ($OktaSays.errorCode + " ; " + $OktaSays.errorCauses[0].errorSummary)
+    } else {
+        $formatError = New-Object System.FormatException -ArgumentList ($OktaSays.errorCode + " ; " + $OktaSays.errorSummary)
+    }
+    #@@@ too bad this doesn't actually work    
     $formatError.HelpLink = $text
     $formatError.Source = $Error[0].Exception
     throw $formatError
@@ -797,7 +801,7 @@ function oktaGetAppGroups()
     param
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid
+        [parameter(Mandatory=$true)][alias("AppId","applicationid")][ValidateLength(20,20)][String]$aid
     )
         
     [string]$method = "GET"
@@ -1155,7 +1159,7 @@ function oktaGetGroupbyId()
     param
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$gid
+        [parameter(Mandatory=$true)][alias("groupId")][ValidateLength(20,20)][String]$gid
     )
     
     [string]$resource  = '/api/v1/groups/' + $gid
