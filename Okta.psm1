@@ -1184,7 +1184,7 @@ function oktaGetGroupsbyUserId()
 {
     param
     (
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg
     )
         
@@ -1210,15 +1210,15 @@ function oktaDelUserFromAllGroups()
     param
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid
     )
         
-    $groups = oktaGetGroupsbyUserId -oOrg $oOrg -userId $uid
+    $groups = oktaGetGroupsbyUserId -oOrg $oOrg -uid $uid
     foreach ($og in $groups)
     {
         if ($og.type -eq 'OKTA_GROUP')
         {
-            oktaDelUseridfromGroupid -oOrg $oOrg -userId $uid -groupId $og.id
+            oktaDelUseridfromGroupid -oOrg $oOrg -uid $uid -gid $og.id
         }
     }
 }
@@ -1280,7 +1280,7 @@ function oktaGetRolesByUserId()
     param
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid
     )
        
     [string]$resource = "/api/v1/users/" + $uid + "/roles"
@@ -1333,7 +1333,7 @@ function oktaAddUseridtoGroupid()
 {
     param
     (
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$gid,
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg
     )
@@ -1360,7 +1360,7 @@ function oktaDelUseridfromGroupid()
     param
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$gid
     )
         
@@ -1387,7 +1387,7 @@ function oktaDelUseridfromAppid()
     param
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid
     )
         
@@ -1415,9 +1415,9 @@ function oktaGetprofilebyId()
     param
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid
     )
-    $profile = (oktaGetUserbyID -oOrg $oOrg -userId $uid).profile
+    $profile = (oktaGetUserbyID -oOrg $oOrg -uid $uid).profile
     return $profile
 }
 
@@ -1529,7 +1529,7 @@ function oktaSetAppidCredentialUsername()
         [parameter(Mandatory=$true)][string]$newuserName
     )
     
-    $_cur = oktaGetAppProfilebyUserId -appid $aid -userid $uid -oOrg $oOrg
+    $_cur = oktaGetAppProfilebyUserId -appid $aid -uid $uid -oOrg $oOrg
 
     $psobj = @{
                 'id'          = $uid
