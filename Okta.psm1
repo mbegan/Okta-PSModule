@@ -740,6 +740,7 @@ function oktaCheckCreds()
     $psobj = @{
                 "password" = $password
                 "username" = $username
+                "relayState" = "/a/relayState/Value"
                 "context" = @{ "userAgent" = "PowerShell API Wrapper"}
               }
     [string]$method = "POST"
