@@ -654,7 +654,7 @@ function oktaForgotPasswordbyId()
     return $request
 }
 
-function oktaCheckCreds()
+function oktaCheckCredsOld()
 {
     <# 
      .Synopsis
@@ -691,6 +691,59 @@ function oktaCheckCreds()
               }
     [string]$method = "POST"
     [string]$resource = "/api/v1/sessions?additionalFields=cookieToken"
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaCheckCreds()
+{
+    <# 
+     .Synopsis
+      Used to validate the credentials of a user against Okta
+
+     .Description
+      Returns a One-Time token used to establish the users session with Okta. See: https://github.com/okta/api/blob/master/docs/endpoints/sessions.md#create-session
+
+     .Parameter username
+      The users okta login value
+
+     .Parameter password
+      the users plaintext password to be validated against okta
+
+     .Parameter oOrg
+      the alias of the Okta Org (assuming everyone has more than one like I do)
+
+     .Example
+      # Check credentials for mbe.gan@gmail.com against the prod okta org
+      oktaCheckCreds -oOrg 'prod' -username 'mbe.egan@gmail.com' -password 'Password2'
+    #>
+
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [Parameter(Mandatory=$true)][string]$username,
+        [Parameter(Mandatory=$true)][string]$password
+    )
+    
+    $request = $null
+    $psobj = @{
+                "password" = $password
+                "username" = $username
+                "context" = @{ "userAgent" = "PowerShell API Wrapper"}
+              }
+    [string]$method = "POST"
+    [string]$resource = "/api/v1/authn"
     try
     {
         $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
