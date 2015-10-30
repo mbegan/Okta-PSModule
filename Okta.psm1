@@ -799,7 +799,7 @@ function oktaGetUsersbyAppID()
     
     [string]$method = "GET"
     [string]$resource = "/api/v1/apps/" + $aid + "/users?limit=" + $limit
-    
+    f
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
@@ -1872,6 +1872,36 @@ function oktaVerifyOTPbyUser()
 
     [string]$method = "POST"
     [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid + '/verify'
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaAuthnQuestionWithState()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(42,42)][String]$stateToken,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$fid,
+        [parameter(Mandatory=$true)][String]$answer
+    )
+
+    $psobj = @{ answer = $answer; stateToken = $stateToken }
+
+    [string]$method = "POST"
+    [string]$resource = '/api/v1/authn/factors/' + $fid + '/verify'
     
     try
     {
