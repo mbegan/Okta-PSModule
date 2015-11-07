@@ -109,6 +109,8 @@ It supports pagination, so grabbing ALL of your users or groups is not a problem
 
 I'll add more details on usage later, if you have a specific use case ask away i'll post an example.
 
+Also browse on over to [Okta community] (https://support.okta.com/help/community) for more discussion
+
 ### Available Commands
 - oktaActivateUserbyId
 - oktaAddUseridtoGroupid
