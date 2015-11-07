@@ -112,12 +112,15 @@ I'll add more details on usage later, if you have a specific use case ask away i
 ### Available Commands
 - oktaActivateUserbyId
 - oktaAddUseridtoGroupid
+- oktaAddUsertoRoles
 - oktaAdminExpirePasswordbyID
 - oktaAdminUpdatePasswordbyID
 - oktaAdminUpdateQandAbyID
+- oktaAuthnQuestionWithState
 - oktaChangePasswordbyID
 - oktaChangeProfilebyID
 - oktaCheckCreds
+- oktaCheckCredsOld
 - oktaConvertGroupbyId
 - oktaConverttoSecureString
 - oktaConvertUsertoFederation
@@ -152,8 +155,11 @@ I'll add more details on usage later, if you have a specific use case ask away i
 - oktaGetUserbyID
 - oktaGetUsersbyAppID
 - oktaGetUserSchemabyType
+- oktaListActiveUsers
 - oktaListDeprovisionedUsers
-- oktaListUsersbyQuery
+- oktaListUsers
+- oktaListUsersbyAttribute
+- oktaListUsersbyDate
 - oktaListUsersbyStatus
 - oktaNewPassword
 - oktaNewUser
