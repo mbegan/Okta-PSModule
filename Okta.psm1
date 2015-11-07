@@ -903,44 +903,21 @@ function oktaListUsers()
     return $request
 }
 
-function oktaListUsersbyQuery()
-{
-    param
-    (
-        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [string]$Query = $null,
-        [int]$limit=$OktaOrgs[$oOrg].pageSize,
-        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
-    )
-    
-    [string]$resource = '/api/v1/users?filter=status+eq+"ACTIVE"' + '&limit=' + $limit
-    [string]$method = "GET"
-    try
-    {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
-    }
-    catch
-    {
-        if ($oktaVerbose -eq $true)
-        {
-            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
-        }
-        throw $_
-    }
-    return $request
-}
-
 function oktaListUsersbyStatus()
 {
     param
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [string]$status,
+        [ValidateSet('STAGED','PROVISIONED','ACTIVE','RECOVERY','LOCKED_OUT','PASSWORD_EXPIRED','DEPROVISIONED')][string]$status,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
     )
-    
-    [string]$resource = '/api/v1/users?filter=status+eq+"' + $status + '"&limit=' + $limit
+
+    [string]$filter = "status eq " + '"'+$status+'"'
+    #$filter = [System.Web.HttpUtility]::UrlEncode($filter)
+    $filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
+    [string]$resource = "/api/v1/users?filter=" + $filter + "&limit=" + $limit
+
     [string]$method = "GET"
     try
     {
@@ -956,7 +933,6 @@ function oktaListUsersbyStatus()
     }
     return $request
 }
-
 
 function oktaListDeprovisionedUsers()
 {
@@ -970,6 +946,129 @@ function oktaListDeprovisionedUsers()
     return oktaListUsersbyStatus -oOrg $oOrg -status "DEPROVISIONED" -limit $limit -enablePagination $enablePagination
 }
 
+function oktaListActiveUsers()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [int]$limit=$OktaOrgs[$oOrg].pageSize,
+        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
+    )
+
+    return oktaListUsersbyStatus -oOrg $oOrg -status ACTIVE -limit $limit -enablePagination $enablePagination
+}
+
+function oktaListUsersbyDate()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [ValidateSet('STAGED','PROVISIONED','ACTIVE','RECOVERY','LOCKED_OUT','PASSWORD_EXPIRED','DEPROVISIONED')][string]$status,
+        #[ValidateSet('lastUpdated','lastLogin','statusChanged','activated','created','passwordChanged')][string]$field,
+        [parameter(Mandatory=$true)][ValidateSet('lastUpdated')][string]$field,
+        [parameter(Mandatory=$true)][ValidateSet('gt','lt','eq','between')][string]$operator,
+        $date,
+        $start,
+        $stop,
+        [int]$limit=$OktaOrgs[$oOrg].pageSize,
+        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
+    )
+
+    if ($operator -eq 'between')
+    {
+        try
+        {
+            if ($start -is [DateTime])
+            {
+                $start = Get-Date $start.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.000Z"
+            }
+            if ($stop -is [DateTime])
+            {
+                $stop = Get-Date $stop.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.000Z"
+            }
+        }
+        catch
+        {
+            Throw ("Bad or missing dates in filter")
+        }
+        [string]$filter = $field + " gt " +  '"'+$start+'" and ' + $field + " lt " + '"'+$stop+'"'
+    } else {
+        try
+        {
+            if ($date -is [DateTime])
+            {
+                $date = Get-Date $date.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.000Z"
+            }
+        }
+        catch
+        {
+            Throw ("Bad or missing dates in filter")
+        }
+        [string]$filter = $field + " " + $operator +" " + '"'+$date+'"'
+    }
+
+    if ($status)
+    {
+        $filter = $filter + " and status eq " + '"'+$status+'"'
+    }
+
+    #$filter = [System.Web.HttpUtility]::UrlEncode($filter)
+    $filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
+    [string]$resource = "/api/v1/users?filter=" + $filter + "&limit=" + $limit
+    [string]$method = "GET"
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaListUsersbyAttribute()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [parameter(Mandatory=$true)][ValidateSet('login','email','firstName','lastName')][string]$field,
+        [parameter(Mandatory=$true)][ValidateSet('eq')][string]$operator,
+        [parameter(Mandatory=$true)][string]$value,
+        [ValidateSet('STAGED','PROVISIONED','ACTIVE','RECOVERY','LOCKED_OUT','PASSWORD_EXPIRED','DEPROVISIONED')][string]$status,
+        [int]$limit=$OktaOrgs[$oOrg].pageSize,
+        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
+    )
+
+    [string]$filter = "profile." + $field + " " + $operator +" " + '"'+$value+'"'
+
+    if ($status)
+    {
+        $filter = $filter + " and status eq " + '"'+$status+'"'
+    }
+
+    #$filter = [System.Web.HttpUtility]::UrlEncode($filter)
+    $filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
+    [string]$resource = "/api/v1/users?filter=" + $filter + "&limit=" + $limit
+    [string]$method = "GET"
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
 
 function oktaResetPasswordbyID()
 {
@@ -1462,7 +1561,6 @@ function oktaDelUseridfromAppid()
     }
     return $request
 }
-
 
 function oktaGetprofilebyId()
 {
@@ -2077,5 +2175,4 @@ function oktaGetProfileMappingBySchema()
     return $request
 }
 
-
-Export-ModuleMember -Function okta*
+Export-ModuleMember -Function okta* -Alias okta*
