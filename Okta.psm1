@@ -799,7 +799,6 @@ function oktaGetUsersbyAppID()
     
     [string]$method = "GET"
     [string]$resource = "/api/v1/apps/" + $aid + "/users?limit=" + $limit
-    f
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
