@@ -1419,34 +1419,33 @@ function oktaGetGroupsbyquery()
         [parameter(Mandatory=$true)][String]$query,
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg
     )
-       
-    [string]$resource = "/api/v1/groups?q=" + $query 
-    [string]$method = "GET"
-    
-    try
-    {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
-    }
-    catch
-    {
-        if ($oktaVerbose -eq $true)
-        {
-            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
-        }
-        throw $_
-    }
-    return $request
+    oktaListGroups -oOrg $oOrg -query $query
 }
 
 function oktaGetGroupsAll()
 {
     param
     (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg
+    )
+
+    oktaListGroups -oOrg $oOrg
+}
+
+function oktaListGroups()
+{
+    param
+    (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [int]$limit=$OktaOrgs[$oOrg].pageSize
+        [parameter(Mandatory=$false)][String]$query,
+        [parameter(Mandatory=$false)][int]$limit=$OktaOrgs[$oOrg].pageSize
     )
        
     [string]$resource = "/api/v1/groups?limit=" + $limit
+    if ($query)
+    {
+        $resource += "&q=" + $query
+    }
     [string]$method = "GET"
     
     try
