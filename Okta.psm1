@@ -733,15 +733,21 @@ function oktaCheckCreds()
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
         [Parameter(Mandatory=$true)][string]$username,
-        [Parameter(Mandatory=$true)][string]$password
+        [Parameter(Mandatory=$true)][string]$password,
+        [Parameter(Mandatory=$false)][string]$ipAddress=$null,
+        [Parameter(Mandatory=$false)][string]$deviceToken=$null,
+        [Parameter(Mandatory=$false)][string]$relayState=$null
     )
     
-    $request = $null
     $psobj = @{
-                "password" = $password
-                "username" = $username
-                "relayState" = "/a/relayState/Value"
-                "context" = @{ "userAgent" = "PowerShell API Wrapper"}
+               "password" = $password
+               "username" = $username
+               "relayState" = $relayState
+               "context" = @{
+                             "ipAddress" = $ipAddress
+                             "userAgent" = $relayState
+                             "deviceToken" = $deviceToken
+                             }
               }
     [string]$method = "POST"
     [string]$resource = "/api/v1/authn"
@@ -799,6 +805,37 @@ function oktaGetUsersbyAppID()
     
     [string]$method = "GET"
     [string]$resource = "/api/v1/apps/" + $aid + "/users?limit=" + $limit
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaGetUsersbyAppIDWithStatus()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
+        [ValidateSet('STAGED','SYNCING','OUT_OF_SYNC','ERROR')][string]$status,
+        [int]$limit=$OktaOrgs[$oOrg].pageSize
+    )
+
+    [string]$filter = "status eq " + '"'+$status+'"'
+    $filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
+    #[string]$resource = "/api/v1/users?filter=" + $filter + "&limit=" + $limit
+    
+    [string]$method = "GET"
+    [string]$resource = "/api/v1/apps/" + $aid + "/users?filter=" + $filter + "&limit=" + $limit
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
@@ -2071,6 +2108,99 @@ function oktaGetUserSchemabyType()
     return $request
 }
 
+function oktaGetAppSchema()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid
+    )
+
+    [string]$method = "GET"
+    [string]$resource = '/api/v1/apps/' + $aid + '/user/schemas'
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaGetAppTypes()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid
+    )
+
+    [string]$method = "GET"
+    [string]$resource = '/api/v1/apps/' + $aid + '/user/types'
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaGetMapping()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$source,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$target
+    )
+
+    #if (! (($source) -or ($destination)) )
+    #{
+    #    throw 'we need something here'
+    #}
+
+    [string]$method = "GET"
+    if (($source) -and ($target))
+    {
+        [string]$resource = '/api/internal/v1/mappings?source=' + $source + '&target=' + $target
+    } elseif ($source) {
+        [string]$resource = '/api/internal/v1/mappings?source=' + $source
+    } elseif ($target) {
+        [string]$resource = '/api/internal/v1/mappings?target=' + $target
+    } else {
+        throw 'we need something here'
+    }
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaGetSchemabyID()
 {
     param
@@ -2132,32 +2262,6 @@ function oktaGetTypes()
 
     [string]$method = "GET"
     [string]$resource = '/api/v1/user/types'
-    
-    try
-    {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
-    }
-    catch
-    {
-        if ($oktaVerbose -eq $true)
-        {
-            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
-        }
-        throw $_
-    }
-    return $request
-}
-
-function oktaGetProfileMappingBySchema()
-{
-    param
-    (
-        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$sid
-    )
-
-    [string]$method = "GET"
-    [string]$resource = '/api/v1/mappings/' + $sid
     
     try
     {
