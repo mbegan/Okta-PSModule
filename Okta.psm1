@@ -1612,7 +1612,7 @@ function oktaGetAppProfilebyUserId()
 {
     param
     (
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
+        [parameter(Mandatory=$true)][alias("appid")][ValidateLength(20,20)][String]$aid,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg
     )
@@ -1706,22 +1706,29 @@ function oktaDeleteUserfromGroup()
     return $request
 }
 
-function oktaSetAppidCredentialUsername()
+function oktaSetAppCredentials()
 {
     param
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][string]$newuserName
+        [parameter(Mandatory=$false)][string]$newuserName,
+        [parameter(Mandatory=$false)][string]$newPassword
     )
     
-    $_cur = oktaGetAppProfilebyUserId -appid $aid -uid $uid -oOrg $oOrg
+    $_cur = oktaGetAppProfilebyUserId -aid $aid -uid $uid -oOrg $oOrg
+    $credentials = New-Object System.Collections.Hashtable
+    if ($newPassword)
+    {
+        $_c = $credentials.Add('password',$newPassword)
+    }
+    if ($newuserName) {
+        $_c = $credentials.Add('userName',$newuserName)
+    }
 
     $psobj = @{
-                'id'          = $uid
-                'scope'       = $_cur.scope
-                'credentials' = @{'userName' = $newuserName}
+                'credentials' = $credentials
               }
     [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
     [string]$method = "PUT"
