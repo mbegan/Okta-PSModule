@@ -159,8 +159,7 @@ function _oktaNewCall()
 
     $request.Accept = $encoding
     $request.UserAgent = "oktaSpecific PowerShell script(V2)"
-    $request.ConnectionGroupName = '_Okta_'
-    $request.KeepAlive = $false
+    #$request.KeepAlive = $false
     
     foreach($key in $headers.keys)
     {
@@ -178,6 +177,7 @@ function _oktaNewCall()
         [System.IO.Stream]$outputStream = [System.IO.Stream]$request.GetRequestStream()
         $outputStream.Write($bytes,0,$bytes.Length)
         $outputStream.Close()
+        Remove-Variable -Name outputStream
     }
  
     try
@@ -227,11 +227,6 @@ function _oktaNewCall()
     {
         $response.Close()
         $response.Dispose()
-        $_catch = $request.ServicePoint.CloseConnectionGroup('_Okta_')
-        $request = $null
-        $response = $null
-        $sr = $null
-        $outputStream = $null
     }
     if (($link.next) -and ($enablePagination))
     {
@@ -282,8 +277,7 @@ function _oktaRecGet()
 
     $request.Accept = $encoding
     $request.UserAgent = "oktaSpecific PowerShell script(V2)"
-    $request.ConnectionGroupName = '_Okta_'
-    $request.KeepAlive = $false
+    #$request.KeepAlive = $false
 
     foreach($key in $headers.keys)
     {
@@ -338,11 +332,6 @@ function _oktaRecGet()
     {
         $response.Close()
         $response.Dispose()
-        $_catch = $request.ServicePoint.CloseConnectionGroup('_Okta_')
-        $request = $null
-        $response = $null
-        $sr = $null
-        $outputStream = $null
     }
     if ($link.next)
     {
