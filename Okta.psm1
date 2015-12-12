@@ -124,6 +124,90 @@ function _testOrg()
     }
 }
 
+function OktaUserfromJson()
+{
+    param
+    (
+        $user
+    )
+
+    $dateFields = ('created','activated','statusChanged','lastLogin','lastUpdated','passwordChanged')
+
+    foreach ($df in $dateFields)
+    {
+        if ($user.$df)
+        {
+            $user.$df = Get-Date $user.$df
+        } else {
+            $user.$df = $null
+        }
+    }
+    return $user
+}
+
+function OktaAppfromJson()
+{
+    param
+    (
+        $app
+    )
+
+    $dateFields = ('created','lastUpdated')
+
+    foreach ($df in $dateFields)
+    {
+        if ($app.$df)
+        {
+            $app.$df = Get-Date $app.$df
+        } else {
+            $app.$df = $null
+        }
+    }
+    return $app
+}
+
+function OktaAppUserfromJson()
+{
+    param
+    (
+        $appUser
+    )
+
+    $dateFields = ('created','lastUpdated','statusChanged','passwordChanged','lastSync')
+
+    foreach ($df in $dateFields)
+    {
+        if ($appUser.$df)
+        {
+            $appUser.$df = Get-Date $appUser.$df
+        } else {
+            $appUser.$df = $null
+        }
+    }
+    return $appUser
+}
+
+function OktaRolefromJson()
+{
+    param
+    (
+        $role
+    )
+
+    $dateFields = ('created','lastUpdated')
+
+    foreach ($df in $dateFields)
+    {
+        if ($role.$df)
+        {
+            $role.$df = Get-Date $role.$df
+        } else {
+            $role.$df = $null
+        }
+    }
+    return $role
+}
+
 function _oktaNewCall()
 {
     param
@@ -387,6 +471,10 @@ function oktaNewUser()
         }
         throw $_
     }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
     return $request
 }
 
@@ -414,6 +502,10 @@ function oktaChangeProfilebyID()
             Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
+    }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
     }
     return $request
 }
@@ -443,6 +535,10 @@ function oktaPutProfileupdate()
             Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
+    }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
     }
     return $request
 }
@@ -490,6 +586,10 @@ function oktaUpdateUserbyID()
         }
         throw $_
     }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
     return $request
 }
 
@@ -521,6 +621,10 @@ function oktaChangePasswordbyID()
         }
         throw $_
     }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
     return $request
 }
 
@@ -547,6 +651,10 @@ function oktaAdminExpirePasswordbyID()
             Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
+    }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
     }
     return $request    
 }
@@ -580,6 +688,10 @@ function oktaAdminUpdateQandAbyID()
         }
         throw $_
     }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
     return $request
 }
 
@@ -610,6 +722,10 @@ function oktaAdminUpdatePasswordbyID()
         }
         throw $_
     }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
     return $request
 }
 
@@ -639,6 +755,10 @@ function oktaForgotPasswordbyId()
             Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
+    }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
     }
     return $request
 }
@@ -780,6 +900,10 @@ function oktaGetUserbyID()
         }
         throw $_
     }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
     return $request
 }
 
@@ -806,6 +930,10 @@ function oktaGetUsersbyAppID()
         }
         throw $_
     }
+    foreach ($appUser in $request)
+    {
+        $appUser = OktaAppUserfromJson -appUser $appUser
+    }
     return $request
 }
 
@@ -821,7 +949,6 @@ function oktaGetUsersbyAppIDWithStatus()
 
     [string]$filter = "status eq " + '"'+$status+'"'
     $filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
-    #[string]$resource = "/api/v1/users?filter=" + $filter + "&limit=" + $limit
     
     [string]$method = "GET"
     [string]$resource = "/api/v1/apps/" + $aid + "/users?filter=" + $filter + "&limit=" + $limit
@@ -840,16 +967,60 @@ function oktaGetUsersbyAppIDWithStatus()
     return $request
 }
 
-function oktaGetActiveApps()
+function oktaListApps()
 {
     param
     (
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
-        [int]$limit=$OktaOrgs[$oOrg].pageSize
+        [parameter(Mandatory=$false)][ValidateSet('ACTIVE','INACTIVE')][String]$status,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$gid,
+        [int]$limit=$OktaOrgs[$oOrg].pageSize,
+        [switch]$expand
     )
+
+    #Make sure we don't build too many expressions
+    [int]$exp = 0
+    if ($uid) { $exp++}
+    if ($gid) { $exp++}
+    if ($status) { $exp++}
+    if ($exp -gt 1)
+    {
+        throw ("Can only use 1 expression to filter on user, group or active")
+    }
             
     [string]$method = "GET"
     [string]$resource = '/api/v1/apps?limit=' + $limit
+    
+    $doFilter = $false
+    if ($status)
+    {
+        $doFilter = $true
+        [string]$filter = "status eq " + '"' + $status + '"'
+    }
+    if ($gid)
+    {
+        $doFilter = $true
+        [string]$filter = "group.id eq " + '"' + $gid + '"'
+        if ($expand)
+        {
+            $filter += "&expand=group/" + $gid
+        }
+    }
+    if ($uid)
+    {
+        $doFilter = $true
+        [string]$filter = "user.id eq " + '"' + $uid + '"'
+        if ($expand)
+        {
+            $filter += "&expand=user/" + $uid
+        }
+    }
+    if ($doFilter)
+    {
+        $filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
+        $resource = $resource + "&filter=" + $filter
+    }
     
     try
     {
@@ -863,7 +1034,13 @@ function oktaGetActiveApps()
         }
         throw $_
     }
+    foreach ($app in $request)
+    {
+        $app = OktaAppfromJson -app $app
+    }
+    return $request
 
+    <#
     $active = New-Object System.Collections.ArrayList
     foreach ($app in $request)
     {
@@ -873,6 +1050,18 @@ function oktaGetActiveApps()
         }
     }
     return $active
+    #>
+}
+
+function oktaGetActiveApps()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [int]$limit=$OktaOrgs[$oOrg].pageSize
+    )
+            
+    return oktaListApps -oOrg $oOrg -status ACTIVE -limit $limit
 }
 
 function oktaGetAppGroups()
@@ -925,6 +1114,11 @@ function oktaListUsers()
         }
         throw $_
     }
+
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
     return $request
 }
 
@@ -939,7 +1133,6 @@ function oktaListUsersbyStatus()
     )
 
     [string]$filter = "status eq " + '"'+$status+'"'
-    #$filter = [System.Web.HttpUtility]::UrlEncode($filter)
     $filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
     [string]$resource = "/api/v1/users?filter=" + $filter + "&limit=" + $limit
 
@@ -955,6 +1148,10 @@ function oktaListUsersbyStatus()
             Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
+    }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
     }
     return $request
 }
@@ -1037,7 +1234,6 @@ function oktaListUsersbyDate()
         $filter = $filter + " and status eq " + '"'+$status+'"'
     }
 
-    #$filter = [System.Web.HttpUtility]::UrlEncode($filter)
     $filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
     [string]$resource = "/api/v1/users?filter=" + $filter + "&limit=" + $limit
     [string]$method = "GET"
@@ -1052,6 +1248,10 @@ function oktaListUsersbyDate()
             Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
+    }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
     }
     return $request
 }
@@ -1076,7 +1276,6 @@ function oktaListUsersbyAttribute()
         $filter = $filter + " and status eq " + '"'+$status+'"'
     }
 
-    #$filter = [System.Web.HttpUtility]::UrlEncode($filter)
     $filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
     [string]$resource = "/api/v1/users?filter=" + $filter + "&limit=" + $limit
     [string]$method = "GET"
@@ -1091,6 +1290,10 @@ function oktaListUsersbyAttribute()
             Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
+    }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
     }
     return $request
 }
@@ -1119,6 +1322,10 @@ function oktaResetPasswordbyID()
         }
         throw $_
     }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
     return $request
 }
 
@@ -1144,6 +1351,10 @@ function oktaConvertUsertoFederation()
             Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
+    }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
     }
     return $request
 }
@@ -1171,6 +1382,10 @@ function oktaDeactivateUserbyID()
         }
         throw $_
     }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
     return $request
 }
 
@@ -1194,6 +1409,10 @@ function oktaActivateUserbyId()
             Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
         }
         throw $_
+    }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
     }
     return $request
 }
@@ -1260,26 +1479,15 @@ function oktaGetAppsbyUserId()
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
         [switch]$expand
     )
-    [string]$resource = '/api/v1/apps?filter=user.id+eq+"' + $uid + '"'
+
     if ($expand)
     {
-        $resource += "&expand=user/" + $uid
+        $apps = oktaListApps -oOrg $oOrg -uid $uid -expand
+    } else {
+        $apps = oktaListApps -oOrg $oOrg -uid $uid
     }
-    [string]$method = "GET"
 
-    try
-    {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
-    }
-    catch
-    {
-        if ($oktaVerbose -eq $true)
-        {
-            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
-        }
-        throw $_
-    }
-    return $request
+    return $apps
 }
 
 function oktaGetAppLinksbyUserId()
