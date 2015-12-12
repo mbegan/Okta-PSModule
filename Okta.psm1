@@ -216,7 +216,8 @@ function _oktaNewCall()
         [String]$method,
         [String]$resource,
         [Object]$body = @{},
-        [boolean]$enablePagination = $OktaOrgs[$oOrg].enablePagination
+        [boolean]$enablePagination = $OktaOrgs[$oOrg].enablePagination,
+        [Object]$altHeaders
     )
 
     $headers = New-Object System.Collections.Hashtable
@@ -230,6 +231,11 @@ function _oktaNewCall()
     $_c = $headers.add('Accept-Language','en-US')
     $_c = $headers.add('Accept-Encoding','gzip,deflate')
 
+    foreach ($alt in $altHeaders.Keys)
+    {
+        $_c = $headers.Add($alt,$altHeaders[$alt])
+    }
+
     [string]$encoding = "application/json"
     if ($resource -like 'https://*')
     {
@@ -242,7 +248,8 @@ function _oktaNewCall()
     if ($oktaVerbose) { Write-Host '[' $request.Method $request.RequestUri ']' -ForegroundColor Cyan}
 
     $request.Accept = $encoding
-    $request.UserAgent = "oktaSpecific PowerShell script(V2)"
+    #$request.UserAgent = "Okta-PSModule/2.0"
+    $request.UserAgent = "Oktaprise/1.1"
     #$request.KeepAlive = $false
     
     foreach($key in $headers.keys)
@@ -360,7 +367,7 @@ function _oktaRecGet()
     if ($oktaVerbose) { Write-Host '[' $request.Method $request.RequestUri ']' -ForegroundColor Cyan}
 
     $request.Accept = $encoding
-    $request.UserAgent = "oktaSpecific PowerShell script(V2)"
+    $request.UserAgent = "Okta-PSModule/2.0"
     #$request.KeepAlive = $false
 
     foreach($key in $headers.keys)
@@ -1382,10 +1389,7 @@ function oktaDeactivateUserbyID()
         }
         throw $_
     }
-    foreach ($user in $request)
-    {
-        $user = OktaUserfromJson -user $user
-    }
+
     return $request
 }
 
@@ -1410,10 +1414,7 @@ function oktaActivateUserbyId()
         }
         throw $_
     }
-    foreach ($user in $request)
-    {
-        $user = OktaUserfromJson -user $user
-    }
+
     return $request
 }
 
@@ -1929,10 +1930,6 @@ function oktaSetAppCredentials()
               }
     [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
     [string]$method = "PUT"
-    if ($oktaVerbose)
-    {
-        Write-Host Changing username for aid:$aid uid:$uid from $_cur.credentials.userName to $newusername
-    }
     
     try
     {
@@ -2039,13 +2036,20 @@ function oktaUpdateAppProfilebyUserId()
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][object]$UpdatedProfile
+        [parameter(Mandatory=$true)][alias("newProfile","updatedProfile")][object]$profile,
+        [switch]$partial
     )
     
-    $psobj = @{ profile = $UpdatedProfile }
+    $psobj = @{ profile = $profile }
 
     [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
-    [string]$method = "POST"
+
+    if ($partial)
+    {
+        [string]$method = "POST"
+    } else {
+        [string]$method = "PUT"
+    }
     
     try
     {
@@ -2283,6 +2287,85 @@ function oktaVerifyMFAnswerbyUser()
         throw $_
     }
     return $request
+}
+
+function oktaVerifyPushbyUser()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$false)][ValidateLength(7,15)][String]$ClientIP = '127.0.0.1'
+    )
+    $factors = oktaGetFactorsbyUser -oOrg $oOrg -uid $uid
+    $push = $false
+    foreach ($factor in $factors)
+    {
+        if (("push" -eq $factor.factorType) -and ("ACTIVE" -eq $factor.status))
+        {
+            $push = $factor
+        }
+    }
+
+    if (!$push)
+    {
+        throw ("No push factor found for $uid")
+    }
+
+    [string]$method = "POST"
+    [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $push.id + '/verify'
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -altHeaders (@{'X-Forwarded-For' = $ClientIP})
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+
+    $poll = _oktaPollPushLink -factorResult $request -oOrg $oOrg
+    return $poll
+}
+
+function _oktaPollPushLink()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
+        $factorResult
+    )
+
+    $c = 0
+    while ("WAITING" -eq $factorResult.factorResult)
+    {
+        $c++
+        sleep -Seconds (2 * ($c/2))
+        [string]$method = $factorResult._links.poll.hints.allow[0]
+        [string]$resource = $factorResult._links.poll.href
+        try
+        {
+            $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+        }
+        catch
+        {
+            if ($oktaVerbose -eq $true)
+            {
+                Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+            }
+            throw $_
+        }
+        #Write-Host -BackgroundColor Black -ForegroundColor White $request.factorResult
+        if (!("WAITING" -eq $request.factorResult))
+        {
+            $factorResult = $request
+        }
+    }
+    return $factorResult
 }
 
 function oktaGetUserSchemabyType()
