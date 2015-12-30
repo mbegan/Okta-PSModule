@@ -229,7 +229,7 @@ function _oktaNewCall()
     }
     $_c = $headers.add('Accept-Charset','ISO-8859-1,utf-8')
     $_c = $headers.add('Accept-Language','en-US')
-    $_c = $headers.add('Accept-Encoding','gzip,deflate')
+    $_c = $headers.add('Accept-Encoding','deflate,gzip')
 
     foreach ($alt in $altHeaders.Keys)
     {
@@ -248,9 +248,9 @@ function _oktaNewCall()
     if ($oktaVerbose) { Write-Host '[' $request.Method $request.RequestUri ']' -ForegroundColor Cyan}
 
     $request.Accept = $encoding
-    #$request.UserAgent = "Okta-PSModule/2.0"
-    $request.UserAgent = "Oktaprise/1.1"
-    #$request.KeepAlive = $false
+    $request.UserAgent = "Okta-PSModule/2.0"
+
+    $request.AutomaticDecompression = @([System.Net.DecompressionMethods]::Deflate, [System.Net.DecompressionMethods]::GZip)
     
     foreach($key in $headers.keys)
     {
@@ -274,7 +274,7 @@ function _oktaNewCall()
     try
     {
         [System.Net.HttpWebResponse]$response = $request.GetResponse()
-        
+       
         if ($Hlink = $response.GetResponseHeader('Link'))
         {
             try
@@ -299,7 +299,8 @@ function _oktaNewCall()
         }
         catch
         {
-            throw "Json Exception : " + $txt
+            Write-Error $txt
+            throw "Json Exception"
         }
     }
     catch [Net.WebException]
@@ -368,7 +369,7 @@ function _oktaRecGet()
 
     $request.Accept = $encoding
     $request.UserAgent = "Okta-PSModule/2.0"
-    #$request.KeepAlive = $false
+    $request.AutomaticDecompression = @([System.Net.DecompressionMethods]::Deflate, [System.Net.DecompressionMethods]::GZip)
 
     foreach($key in $headers.keys)
     {
