@@ -83,7 +83,7 @@ function oktaExternalIdtoGUID()
 
 function oktaConverttoSecureString()
 {
-    return (ConvertFrom-SecureString -SecureString (Get-Credential -Message 'Paste the API Token in Password Box' "User Name Doesn't Matter").Password)
+    return (ConvertFrom-SecureString -SecureString (Read-Host -AsSecureString -Prompt "PlainText Secret Key"))
 }
 
 function oktaProcessHeaderLink()
