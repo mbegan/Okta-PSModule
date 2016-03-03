@@ -198,11 +198,11 @@ function OktaRolefromJson()
 
     foreach ($df in $dateFields)
     {
-        if ($role.$df)
+        if ($role[$df])
         {
-            $role.$df = Get-Date $role.$df
+            $role[$df] = Get-Date $role.$df
         } else {
-            $role.$df = $null
+            $role[$df] = $null
         }
     }
     return $role
@@ -1342,11 +1342,12 @@ function oktaConvertUsertoFederation()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$false)][ValidateSet('FEDERATION','OKTA')][String]$source='FEDERATION'
     )
     
     [string]$method = "POST"
-    [string]$resource = '/api/v1/users/' + $uid + '/lifecycle/reset_password?provider=FEDERATION&sendEmail=false'
+    [string]$resource = '/api/v1/users/' + $uid + '/lifecycle/reset_password?provider=' + $source + '&sendEmail=false'
     
     try
     {
@@ -1736,10 +1737,29 @@ function oktaAddUseridtoGroupid()
 {
     param
     (
-        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$gid,
-        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg
+        [parameter(Mandatory=$false)]
+            [alias("userId")]
+            [ValidateLength(20,20)]
+            [String]$uid,
+        [parameter(Mandatory=$true)]
+            [ValidateLength(20,20)]
+            [String]$gid,
+        [parameter(Mandatory=$false)]
+            [ValidateLength(1,100)]
+            [String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)]
+            [string]$username
     )
+
+    if (!$uid)
+    {
+        if ($username)
+        {
+            $uid = (oktaGetUserbyID -oOrg $oOrg -userName $username).id
+        } else {
+            throw ("Must send one of uid or username")
+        }
+    }
         
     [string]$resource = "/api/v1/groups/" + $gid + "/users/" + $uid
     [string]$method = "PUT"
@@ -2119,8 +2139,18 @@ function oktaGetFactorsbyUser()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$username
     )
+    if (!$uid)
+    {
+        if ($username)
+        {
+            $uid = (oktaGetUserbyID -oOrg $oOrg -userName $username).id
+        } else {
+            throw ("Must send one of uid or username")
+        }
+    }
     
     [string]$resource = '/api/v1/users/' + $uid + '/factors'
     [string]$method = "GET"
@@ -2171,9 +2201,20 @@ function oktaResetFactorbyUser()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$fid
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$fid,
+        [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$username
     )
+
+    if (!$uid)
+    {
+        if ($username)
+        {
+            $uid = (oktaGetUserbyID -oOrg $oOrg -userName $username).id
+        } else {
+            throw ("Must send one of uid or username")
+        }
+    }
 
     [string]$method = "DELETE"
     [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid
@@ -2198,8 +2239,18 @@ function oktaResetFactorsbyUser()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$username
     )
+    if (!$uid)
+    {
+        if ($username)
+        {
+            $uid = (oktaGetUserbyID -oOrg $oOrg -userName $username).id
+        } else {
+            throw ("Must send one of uid or username")
+        }
+    }
 
     $factors = oktaGetFactorsbyUser -oOrg $oOrg -uid $uid
     $freset = New-Object System.Collections.ArrayList
