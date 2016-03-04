@@ -2134,6 +2134,106 @@ function oktaUpdateAppExternalIdbyUserId()
     return $request
 }
 
+function oktaActivateFactorByUser()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$username,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$fid,
+        [parameter(Mandatory=$true)][ValidateLength(6,6)][String]$passCode
+
+    )
+
+    if (!$uid)
+    {
+        if ($username)
+        {
+            $uid = (oktaGetUserbyID -oOrg $oOrg -userName $username).id
+        } else {
+            throw ("Must send one of uid or username")
+        }
+    }
+
+    $body = @{ passCode = $passCode }
+
+    [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid + '/lifecycle/activate'
+    [string]$method = "POST"
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $body
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+
+function oktaAddFactorByUser()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$username,
+        [parameter(Mandatory=$false)][ValidateSet('sms','token:hardware')][String]$factorType,
+        [parameter(Mandatory=$false)][ValidateSet('OKTA','DUO')][String]$provider,
+        [parameter(Mandatory=$false)][String]$phoneNumber,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$fid,
+        [parameter(Mandatory=$false)][switch]$update
+    )
+
+    if (!$uid)
+    {
+        if ($username)
+        {
+            $uid = (oktaGetUserbyID -oOrg $oOrg -userName $username).id
+        } else {
+            throw ("Must send one of uid or username")
+        }
+    }
+
+    $profile = @{phoneNumber = $phoneNumber}
+
+    $body = @{
+             factorType = $factorType
+             provider = $provider
+             profile = $profile
+             }
+
+    [string]$resource = '/api/v1/users/' + $uid + '/factors'
+    [string]$method = "POST"
+
+    if ($update)
+    {
+        #[string]$method = "PUT"
+        $resource = $resource + '/' + $fid
+        $body = @{ profile = $profile }
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $body
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaGetFactorsbyUser()
 {
     param
