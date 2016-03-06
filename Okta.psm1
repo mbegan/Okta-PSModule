@@ -259,7 +259,7 @@ function _oktaNewCall()
  
     if ( ($method -eq "POST") -or ($method -eq "PUT") )
     {
-        $postData = ConvertTo-Json $body
+        $postData = ConvertTo-Json $body -Compress -Depth 10
         if ($oktaVerbose) { Write-Host $postData -ForegroundColor Cyan }
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($postData)
         $request.ContentType = $encoding
