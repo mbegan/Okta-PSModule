@@ -1952,7 +1952,7 @@ function oktaSetAppCredentials()
         [parameter(Mandatory=$false)][string]$newPassword
     )
     
-    $_cur = oktaGetAppProfilebyUserId -aid $aid -uid $uid -oOrg $oOrg
+    #$_cur = oktaGetAppProfilebyUserId -aid $aid -uid $uid -oOrg $oOrg
     $credentials = New-Object System.Collections.Hashtable
     if ($newPassword)
     {
@@ -1966,8 +1966,8 @@ function oktaSetAppCredentials()
                 'credentials' = $credentials
               }
     [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
-    [string]$method = "PUT"
-    
+    [string]$method = "POST"
+
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
@@ -2462,9 +2462,21 @@ function oktaVerifyPushbyUser()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$username,
         [parameter(Mandatory=$false)][ValidateLength(7,15)][String]$ClientIP = '127.0.0.1'
     )
+
+    if (!$uid)
+    {
+        if ($username)
+        {
+            $uid = (oktaGetUserbyID -oOrg $oOrg -userName $username).id
+        } else {
+            throw ("Must send one of uid or username")
+        }
+    }
+
     $factors = oktaGetFactorsbyUser -oOrg $oOrg -uid $uid
     $push = $false
     foreach ($factor in $factors)
@@ -2527,13 +2539,31 @@ function _oktaPollPushLink()
             }
             throw $_
         }
-        #Write-Host -BackgroundColor Black -ForegroundColor White $request.factorResult
-        if (!("WAITING" -eq $request.factorResult))
+        
+        Write-Verbose ($request.factorResult)
+        if ($request.factorResult -ne 'WAITING')
         {
             $factorResult = $request
         }
     }
-    return $factorResult
+
+    switch ($factorResult.factorResult)
+    {
+
+        "SUCCESS"
+        {
+        }
+        "REJECTED"
+        {
+        }
+        "TIMEOUT"
+        {
+        }
+
+        default {$results = $factorResult}
+    }
+
+    return $results
 }
 
 function oktaGetUserSchemabyType()
