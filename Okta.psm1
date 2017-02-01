@@ -2867,4 +2867,81 @@ function oktaListLogs()
 
 
 
+################## Identity Providers ###########################
+
+function oktaListProviders()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$pid,
+        [parameter(Mandatory=$false)][ValidateSet('SAML2','FACEBOOK','GOOGLE','LINKEDIN','MICROSOFT')][String]$type,
+        [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$filter
+    )
+
+    [string]$method = "GET"
+    [string]$resource = '/api/v1/idps'
+
+
+
+    if ($pid)
+    {
+        $resource += '/' + $pid
+    } elseif ($type)
+    {
+        $resource += '?type=' + $type
+    } elseif ($filter)
+    {
+        $resource += '?q=' + $filter
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaListProviderKeys()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][ValidateLength(36,36)][String]$kid
+    )
+
+    [string]$method = "GET"
+    [string]$resource = '/api/v1/idps/credentials/keys'
+
+
+
+    if ($kid)
+    {
+        $resource += '/' + $kid
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+
 Export-ModuleMember -Function okta* -Alias okta*
