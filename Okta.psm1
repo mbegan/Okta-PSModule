@@ -83,7 +83,17 @@ function oktaExternalIdtoGUID()
 
 function oktaConverttoSecureString()
 {
-    return (ConvertFrom-SecureString -SecureString (Read-Host -AsSecureString -Prompt "PlainText Secret Key"))
+    param
+    (
+        [string]$insecureString
+    )
+    if ($insecureString)
+    {
+        $secureString = (ConvertFrom-SecureString -SecureString (ConvertTo-SecureString -AsPlainText -Force -String $insecureString))
+    } else {
+        $secureString = (ConvertFrom-SecureString -SecureString (Read-Host -AsSecureString -Prompt "PlainText Secret Key"))
+    }
+    return $secureString
 }
 
 function oktaProcessHeaderLink()
@@ -231,11 +241,6 @@ function _oktaNewCall()
     $_c = $headers.add('Accept-Language','en-US')
     $_c = $headers.add('Accept-Encoding','deflate,gzip')
 
-    foreach ($alt in $altHeaders.Keys)
-    {
-        $_c = $headers.Add($alt,$altHeaders[$alt])
-    }
-
     [string]$encoding = "application/json"
     if ($resource -like 'https://*')
     {
@@ -248,9 +253,20 @@ function _oktaNewCall()
     if ($oktaVerbose) { Write-Host '[' $request.Method $request.RequestUri ']' -ForegroundColor Cyan}
 
     $request.Accept = $encoding
-    $request.UserAgent = "Okta-PSModule/2.0"
 
     $request.AutomaticDecompression = @([System.Net.DecompressionMethods]::Deflate, [System.Net.DecompressionMethods]::GZip)
+    if ( ($altHeaders) -and ($altHeaders['UserAgent']) )
+    {
+        $request.UserAgent = $altHeaders['UserAgent']
+        $altHeaders.Remove('UserAgent')
+    } else {
+        $request.UserAgent = "Okta-PSModule/2.0"
+    }
+
+    foreach ($alt in $altHeaders.Keys)
+    {
+        $_c = $headers.Add($alt,$altHeaders[$alt])
+    }
     
     foreach($key in $headers.keys)
     {
@@ -269,6 +285,19 @@ function _oktaNewCall()
         $outputStream.Write($bytes,0,$bytes.Length)
         $outputStream.Close()
         Remove-Variable -Name outputStream
+    }
+
+    if ($oktaVerbose)
+    {
+        foreach ($h in $request.Headers.keys)
+        {
+            if ($h -eq 'Authorization')
+            {
+                Write-Verbose("Hdr: " + $h + " -> SSWS xXxXxXxxXxxXxXxXxxXx")
+            } else {
+                Write-Verbose("Hdr: " + $h + " -> " + $request.Headers[$h])
+            }
+        }
     }
  
     try
@@ -2464,7 +2493,8 @@ function oktaVerifyPushbyUser()
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$username,
-        [parameter(Mandatory=$false)][ValidateLength(7,15)][String]$ClientIP = '127.0.0.1'
+        [parameter(Mandatory=$false)][ValidateLength(7,15)][String]$ClientIP = '127.0.0.1',
+        [parameter(Mandatory=$false)][ValidateLength(1,1024)][String]$UserAgent = 'Okta-PSModule/2.0'
     )
 
     if (!$uid)
@@ -2490,14 +2520,20 @@ function oktaVerifyPushbyUser()
     if (!$push)
     {
         throw ("No push factor found for $uid")
+    } else {
+        Write-Verbose("Found push factor " + $factor.id + " sending push")
     }
 
     [string]$method = "POST"
     [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $push.id + '/verify'
-    
+    $altHeaders = @{
+        'UserAgent' = $UserAgent
+        'X-Forwarded-For' = $ClientIP
+    }
+
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -altHeaders (@{'X-Forwarded-For' = $ClientIP})
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -altHeaders $altHeaders
     }
     catch
     {
@@ -2507,6 +2543,8 @@ function oktaVerifyPushbyUser()
         }
         throw $_
     }
+
+    Write-Verbose("Push transaction triggered, pulling for status @ :" + $request._links.poll.href)
 
     $poll = _oktaPollPushLink -factorResult $request -oOrg $oOrg
     return $poll
@@ -2524,7 +2562,9 @@ function _oktaPollPushLink()
     while ("WAITING" -eq $factorResult.factorResult)
     {
         $c++
-        sleep -Seconds (2 * ($c/2))
+        $sleepy = (2 * ($c/2))
+        sleep -Seconds $sleepy
+        Write-Verbose("Adaptive sleeping for: " + $sleepy + " Seconds") 
         [string]$method = $factorResult._links.poll.hints.allow[0]
         [string]$resource = $factorResult._links.poll.href
         try
@@ -2770,57 +2810,11 @@ function oktaListEvents()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [ValidateSet('STAGED','PROVISIONED','ACTIVE','RECOVERY','LOCKED_OUT','PASSWORD_EXPIRED','DEPROVISIONED')][string]$status,
-        #[ValidateSet('lastUpdated','lastLogin','statusChanged','activated','created','passwordChanged')][string]$field,
-        [parameter(Mandatory=$true)][ValidateSet('lastUpdated')][string]$field,
-        [parameter(Mandatory=$true)][ValidateSet('gt','lt','eq','between')][string]$operator,
-        $date,
-        $start,
-        $stop,
-        [int]$limit=$OktaOrgs[$oOrg].pageSize,
+        [int]$limit=100,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
     )
 
-    if ($operator -eq 'between')
-    {
-        try
-        {
-            if ($start -is [DateTime])
-            {
-                $start = Get-Date $start.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.000Z"
-            }
-            if ($stop -is [DateTime])
-            {
-                $stop = Get-Date $stop.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.000Z"
-            }
-        }
-        catch
-        {
-            Throw ("Bad or missing dates in filter")
-        }
-        [string]$filter = $field + " gt " +  '"'+$start+'" and ' + $field + " lt " + '"'+$stop+'"'
-    } else {
-        try
-        {
-            if ($date -is [DateTime])
-            {
-                $date = Get-Date $date.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.000Z"
-            }
-        }
-        catch
-        {
-            Throw ("Bad or missing dates in filter")
-        }
-        [string]$filter = $field + " " + $operator +" " + '"'+$date+'"'
-    }
-
-    if ($status)
-    {
-        $filter = $filter + " and status eq " + '"'+$status+'"'
-    }
-
-    $filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
-    [string]$resource = "/api/v1/users?filter=" + $filter + "&limit=" + $limit
+    [string]$resource = "/api/v1/events?limit=" + $limit
     [string]$method = "GET"
     try
     {
@@ -2834,9 +2828,39 @@ function oktaListEvents()
         }
         throw $_
     }
-    foreach ($user in $request)
+    return $request
+}
+
+function oktaListLogs()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [int]$limit=100,
+        [int]$sinceDaysAgo=1,
+        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
+    )
+
+    if ($sinceDaysAgo)
     {
-        $user = OktaUserfromJson -user $user
+        $meow = Get-Date
+        $start = $meow.AddDays(-$sinceDaysAgo)
+        $since = Get-Date $start.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.000Z"
+    }
+
+    [string]$resource = "/api/v1/logs?limit=" + $limit + "&since=" + $since
+    [string]$method = "GET"
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
     }
     return $request
 }
