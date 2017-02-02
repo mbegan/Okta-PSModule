@@ -2910,6 +2910,9 @@ function oktaListProviders()
     return $request
 }
 
+
+################## Identity Provider Keys ###########################
+
 function oktaListProviderKeys()
 {
     param
@@ -2943,5 +2946,78 @@ function oktaListProviderKeys()
     return $request
 }
 
+function oktaAddProviderKey()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][String]$filepath
+    )
+
+    [string]$method = "POST"
+    [string]$resource = '/api/v1/idps/credentials/keys'
+
+    try
+    {
+        $cert = Get-Content -Path $filepath
+    }
+    catch
+    {
+        throw $_.Exception
+    }
+
+    [string]$x5c = ""
+    foreach ($line in $cert)
+    {
+        if ( ($line -ne '-----BEGIN CERTIFICATE-----') -and ($line -ne '-----END CERTIFICATE-----') )
+        {
+            $x5c += ($line)
+        }
+    }
+    $x5cs = @( $x5c )
+    $psobj = @{ x5c = $x5cs }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaDeleteProviderKey()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(36,36)][String]$kid
+    )
+
+    [string]$method = "DELETE"
+    [string]$resource = '/api/v1/idps/credentials/keys'
+
+    $resource += '/' + $kid
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
 
 Export-ModuleMember -Function okta* -Alias okta*
