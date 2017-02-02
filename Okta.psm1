@@ -69,6 +69,41 @@ function oktaNewPassword
     return $Password
 }
 
+function oktaRandLower
+{
+    param
+    (
+        [Int32]$Length = 18,
+        [Int32]$MustIncludeSets = 3
+    )
+
+    $CharacterSets = @("abcdefghijklmnopqrstuvwzyz","abcdefghijklmnopqrstuvwzyz","abcdefghijklmnopqrstuvwzyz","abcdefghijklmnopqrstuvwzyz")
+
+    $Random = New-Object Random
+
+    $Password = ""
+    $IncludedSets = ""
+    $IsNotComplex = $true
+    while ($IsNotComplex -or $Password.Length -lt $Length)
+    {
+        $Set = $Random.Next(0, 4)
+        if (!($IsNotComplex -and $IncludedSets -match "$Set" -And $Password.Length -lt ($Length - $IncludedSets.Length)))
+        {
+            if ($IncludedSets -notmatch "$Set")
+            {
+                $IncludedSets = "$IncludedSets$Set"
+            }
+            if ($IncludedSets.Length -ge $MustIncludeSets)
+            {
+                $IsNotcomplex = $false
+            }
+
+            $Password = "$Password$($CharacterSets[$Set].SubString($Random.Next(0, $CharacterSets[$Set].Length), 1))"
+        }
+    }
+    return $Password
+}
+
 function oktaExternalIdtoGUID()
 {
     param
@@ -275,7 +310,7 @@ function _oktaNewCall()
  
     if ( ($method -eq "POST") -or ($method -eq "PUT") )
     {
-        $postData = ConvertTo-Json $body -Compress -Depth 10
+        $postData = ConvertTo-Json $body -Depth 10
         if ($oktaVerbose) { Write-Host $postData -ForegroundColor Cyan }
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($postData)
         $request.ContentType = $encoding
@@ -2910,6 +2945,164 @@ function oktaListProviders()
     return $request
 }
 
+function oktaNewProviderPolicyObject()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateSet('AUTO','CALLOUT','DISABLED')][String]$provUserAction='DISABLED',
+        [parameter(Mandatory=$false)][bool]$profileMaster=$false,
+        [parameter(Mandatory=$false)][ValidateSet('NONE','APPEND','ASSIGN','SYNC')][String]$provGroupAction='NONE',
+        [parameter(Mandatory=$false)][ValidateSet('AUTO','CALLOUT','DISABLED')][String]$accountLinkAction='AUTO',
+        [parameter(Mandatory=$false)][array]$accountLinkFilter=@(),
+        [parameter(Mandatory=$false)][array]$groupsFilter=@(),
+        [parameter(Mandatory=$false)][array]$groupsAssign=@(),
+        [parameter(Mandatory=$false)][string]$groupSourceAttrName='Groups',
+        [parameter(Mandatory=$false)][ValidateLength(9,1024)][String]$userNameTempalate='idpuser.subjectNameId',
+        [parameter(Mandatory=$false)][String]$subjectFilter=$null,
+        [parameter(Mandatory=$false)][ValidateSet('EMAIL','USERNAME','USERNAME_OR_EMAIL','CUSTOM_ATTRIBUTE')][String]$subjectMatchType='USERNAME_OR_EMAIL',
+        [parameter(Mandatory=$false)][String]$subjectMatchAttr=$null,
+        [parameter(Mandatory=$false)][String]$maxClockSwew='120000'
+    )
+
+    $groups = @{ action = $provGroupAction; sourceAttributeName = $groupSourceAttrName; filter = $groupsFilter; assignments = $groupsAssign }
+    $callout = $null
+    $provisioning = @{ action = $provUserAction; profileMaster = $profileMaster; groups = $groups}
+
+    if ($accountLinkFilter.Count -ge 1)
+    {
+        $accountLink = @{ action = $accountLinkAction; filter = @{groups = @{include = $accountLinkFilter }} }   
+    } else {
+        $accountLink = @{ action = $accountLinkAction; filter = $null }
+    }
+    $userNameTemplateobject = @{ template = $userNameTempalate }
+    $subject = @{ userNameTemplate = $userNameTemplateobject; filter = $subjectFilter; matchType = $subjectMatchType; matchAttribute = $subjectMatchAttr }
+
+    $policy = @{ provisioning = $provisioning; accountLink = $accountLink; subject = $subject; maxClockSkew = $maxClockSwew }
+    
+    return $policy
+}
+
+function oktaNewSaml2ProtocolObject()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,36)][String]$kid,
+        [parameter(Mandatory=$true)][ValidateLength(11,1014)][String]$ssoURL,
+        [parameter(Mandatory=$true)][ValidateLength(1,1024)][String]$idpIssuer,
+        [parameter(Mandatory=$false)][ValidateLength(1,1024)][String]$idpAudience=($oktaOrgs.$oOrg.baseUrl + '/saml2/service-provider/sp' + (oktaRandLower -Length 18)),
+        [parameter(Mandatory=$false)][ValidateLength(1,512)][String]$ssoDestination=$ssoURL,
+        [parameter(Mandatory=$false)][ValidateSet('HTTP-POST','HTTP-Redirect')][String]$ssoBinding='HTTP-POST',
+        [parameter(Mandatory=$false)][ValidateSet('HTTP-POST','HTTP-Redirect')][String]$acsBinding='HTTP-POST',
+        [parameter(Mandatory=$false)][ValidateSet('INSTANCE','ORG')][String]$acsType='INSTANCE',
+        [parameter(Mandatory=$false)][ValidateSet('SHA-256','SHA-1')][String]$algoReqAlgo='SHA-256',
+        [parameter(Mandatory=$false)][ValidateSet('REQUEST','NONE')][String]$algoReqScope='REQUEST',
+        [parameter(Mandatory=$false)][ValidateSet('SHA-256','SHA-1')][String]$algoResAlgo='SHA-256',
+        [parameter(Mandatory=$false)][ValidateSet('RESPONSE','ASSERTION','ANY')][String]$algoResScope='ANY',
+        [parameter(Mandatory=$false)][ValidateSet('unspecified','transient','persistent','emailAddress')][String]$nameFormat='unspecified'
+    )
+
+    $nfHash = @{ 
+        emailAddress = 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress'
+        unspecified = 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified'
+        transient = 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient'
+        persistent = 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent'
+        }
+
+    $endpoints = @{ sso = @{ url = $ssoURL; binding = $ssoBinding; destination = $ssoDestination }
+                    acs = @{ binding = $acsBinding; type = $acsType } 
+                  }
+
+    $credentials = @{ trust = @{ issuer = $idpIssuer; audience = $idpAudience; kid = $kid }
+                      signing = $null
+                    }
+
+    $alReq = @{ signature = @{ algorithm = $algoReqAlgo; scope = $algoReqScope } }
+    $alRes = @{ signature = @{ algorithm = $algoResAlgo; scope = $algoResScope } }
+
+    $algorithms = @{ request = $alReq; response = $alRes}
+
+    $settings = @{ nameFormat = $nfHash[$nameFormat] }
+
+    $protocol = @{ type = 'SAML2'
+                   endpoints = $endpoints
+                   algorithms = $algorithms
+                   credentials = $credentials
+                   settings = $settings
+                }
+    return $protocol
+}
+
+function oktaAddProvider()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateSet('SAML2','FACEBOOK','GOOGLE','LINKEDIN','MICROSOFT')][String]$type,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$name,
+        [parameter(Mandatory=$false)][ValidateSet('INACTIVE','ACTIVE')][string]$status='ACTIVE',
+        [parameter(Mandatory=$true)][object]$protocolObject,
+        [parameter(Mandatory=$true)][object]$policyObject
+    )
+
+    [string]$method = "POST"
+    [string]$resource = '/api/v1/idps'
+
+    $provider = @{ type = $type
+                   name = $name
+                   status = $status
+                   protocol = $protocolObject
+                   policy = $policyObject
+                 }
+
+    <#
+    $json = $provider | ConvertTo-Json -Depth 10
+
+    $prov = ConvertFrom-Json -InputObject $json
+    return $prov
+    #>
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $provider
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaDeleteProvider()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$pid
+    )
+
+    [string]$method = "DELETE"
+    [string]$resource = '/api/v1/idps'
+
+    $resource += '/' + $pid
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
 
 ################## Identity Provider Keys ###########################
 
@@ -2918,7 +3111,7 @@ function oktaListProviderKeys()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$false)][ValidateLength(36,36)][String]$kid
+        [parameter(Mandatory=$false)][ValidateLength(20,36)][String]$kid
     )
 
     [string]$method = "GET"
@@ -2997,7 +3190,7 @@ function oktaDeleteProviderKey()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$true)][ValidateLength(36,36)][String]$kid
+        [parameter(Mandatory=$true)][ValidateLength(20,36)][String]$kid
     )
 
     [string]$method = "DELETE"
