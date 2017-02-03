@@ -1425,10 +1425,10 @@ function oktaConvertUsertoFederation()
         }
         throw $_
     }
-    foreach ($user in $request)
-    {
-        $user = OktaUserfromJson -user $user
-    }
+    #foreach ($user in $request)
+    #{
+    #    $user = OktaUserfromJson -user $user
+    #}
     return $request
 }
 
@@ -2999,15 +2999,13 @@ function oktaNewSaml2ProtocolObject()
         [parameter(Mandatory=$false)][ValidateSet('REQUEST','NONE')][String]$algoReqScope='REQUEST',
         [parameter(Mandatory=$false)][ValidateSet('SHA-256','SHA-1')][String]$algoResAlgo='SHA-256',
         [parameter(Mandatory=$false)][ValidateSet('RESPONSE','ASSERTION','ANY')][String]$algoResScope='ANY',
-        [parameter(Mandatory=$false)][ValidateSet('unspecified','transient','persistent','emailAddress')][String]$nameFormat='unspecified'
+        [parameter(Mandatory=$false)]
+            [ValidateSet('urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified',
+                         'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
+                         'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent',
+                         'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress')]
+            [String]$nameFormat='urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified'
     )
-
-    $nfHash = @{ 
-        emailAddress = 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress'
-        unspecified = 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified'
-        transient = 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient'
-        persistent = 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent'
-        }
 
     $endpoints = @{ sso = @{ url = $ssoURL; binding = $ssoBinding; destination = $ssoDestination }
                     acs = @{ binding = $acsBinding; type = $acsType } 
@@ -3022,8 +3020,8 @@ function oktaNewSaml2ProtocolObject()
 
     $algorithms = @{ request = $alReq; response = $alRes}
 
-    $settings = @{ nameFormat = $nfHash[$nameFormat] }
-
+    $settings = @{ nameFormat = $nameFormat }
+    
     $protocol = @{ type = 'SAML2'
                    endpoints = $endpoints
                    algorithms = $algorithms
