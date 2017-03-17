@@ -1797,6 +1797,60 @@ function oktaAddUsertoRoles()
     return $request
 }
 
+function oktaDelUserFromRoles()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$rid
+    )
+       
+    [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid
+    [string]$method = "DELETE"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaGetRoleTargetsByUserId()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$rid
+    )
+       
+    [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid + "/targets/groups"
+    [string]$method = "GET"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaAddUseridtoGroupid()
 {
     param
@@ -2239,7 +2293,6 @@ function oktaActivateFactorByUser()
     }
     return $request
 }
-
 
 function oktaAddFactorByUser()
 {
@@ -2872,7 +2925,7 @@ function oktaListLogs()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [int]$limit=100,
-        [int]$sinceDaysAgo=1,
+        [parameter(Mandatory=$false)][ValidateRange(1,180)][int]$sinceDaysAgo=1,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
     )
 
