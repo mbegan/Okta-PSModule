@@ -979,6 +979,32 @@ function oktaGetUserbyID()
     return $request
 }
 
+function oktaDeleteUserbyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid
+    )
+
+    [string]$method = "DELETE"
+    [string]$resource = "/api/v1/users/" + $uid
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaGetUsersbyAppID()
 {
     param

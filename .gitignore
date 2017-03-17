@@ -36,6 +36,7 @@
 ehthumbs.db
 Thumbs.db
 *~
+.vscode
 
 # Sensitive personalized files #
 ################################
