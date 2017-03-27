@@ -253,6 +253,20 @@ function OktaRolefromJson()
     return $role
 }
 
+$okta_epoch =  New-Object System.DateTime (1970, 1, 1, 0, 0, 0, [System.DateTimeKind]::Utc)
+function _oktaRateLimitTimeRemaining()
+{
+    param
+    (
+        [long]$seconds
+    )
+
+    $reset = $okta_epoch.AddSeconds($seconds)
+    $now = Get-Date
+    $timeToReset = New-TimeSpan -Start ($now.ToUniversalTime()) -End $reset
+    return $timeToReset.TotalSeconds
+}
+
 function _oktaNewCall()
 {
     param
@@ -338,7 +352,8 @@ function _oktaNewCall()
     try
     {
         [System.Net.HttpWebResponse]$response = $request.GetResponse()
-       
+        
+        # Get pagination stuff       
         if ($Hlink = $response.GetResponseHeader('Link'))
         {
             try
@@ -351,6 +366,20 @@ function _oktaNewCall()
             }
         } else {
             $link = $false
+        }
+
+        if ($response.Headers['X-Rate-Limit-Reset'])
+        {
+            $reset = _oktaRateLimitTimeRemaining -seconds $response.Headers['X-Rate-Limit-Reset']
+            $remain = $response.Headers['X-Rate-Limit-Remaining']
+            $limit = $response.Headers['X-Rate-Limit-Limit']
+            $limit_note = "You have $remain out of $limit in the next $reset seconds"
+            Write-Verbose($limit_note)
+        }
+
+        if ($response.Headers['X-Okta-Request-Id'])
+        {
+            Write-Verbose( "Okta Request ID :" + $response.Headers['X-Okta-Request-Id'] )
         }
 
         $sr = New-Object System.IO.StreamReader($response.GetResponseStream())
@@ -449,6 +478,7 @@ function _oktaRecGet()
             try
             {
                 $link = oktaProcessHeaderLink -Header $Hlink
+                #Write-Verbose($link)
             }
             catch
             {
@@ -456,6 +486,20 @@ function _oktaRecGet()
             }
         } else {
             $link = $false
+        }
+
+        if ($response.Headers['X-Rate-Limit-Reset'])
+        {
+            $reset = _oktaRateLimitTimeRemaining -seconds $response.Headers['X-Rate-Limit-Reset']
+            $remain = $response.Headers['X-Rate-Limit-Remaining']
+            $limit = $response.Headers['X-Rate-Limit-Limit']
+            $limit_note = "You have $remain out of $limit in the next $reset seconds"
+            Write-Verbose($limit_note)
+        }
+
+        if ($response.Headers['X-Okta-Request-Id'])
+        {
+            Write-Verbose( "Okta Request ID :" + $response.Headers['X-Okta-Request-Id'] )
         }
 
         $sr = New-Object System.IO.StreamReader($response.GetResponseStream())
@@ -1011,11 +1055,18 @@ function oktaGetUsersbyAppID()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
-        [int]$limit=$OktaOrgs[$oOrg].pageSize
+        [parameter(Mandatory=$false)][switch]$skinny,
+        [parameter(Mandatory=$false)][int]$limit=$OktaOrgs[$oOrg].pageSize
     )
     
     [string]$method = "GET"
-    [string]$resource = "/api/v1/apps/" + $aid + "/users?limit=" + $limit
+    if ($skinny)
+    {
+        [string]$resource = "/api/v1/apps/" + $aid + "/skinny_users?limit=" + $limit
+    } else {
+        [string]$resource = "/api/v1/apps/" + $aid + "/users?limit=" + $limit
+    }
+    
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
@@ -2036,11 +2087,17 @@ function oktaGetGroupMembersbyId()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$gid,
+        [parameter(Mandatory=$false)][switch]$skinny,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
     )
-
-    [string]$resource = "/api/v1/groups/" + $gid + "/users?limit=" + $limit
+    if ($skinny)
+    {
+        [string]$resource = "/api/v1/groups/" + $gid + "/skinny_users?limit=" + $limit
+    } else {
+        [string]$resource = "/api/v1/groups/" + $gid + "/users?limit=" + $limit
+    }
+    
     [string]$method = "GET"
 
     try
