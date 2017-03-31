@@ -215,10 +215,16 @@ function OktaAppUserfromJson()
 {
     param
     (
-        $appUser
+        $appUser,
+        [parameter(Mandatory=$false)][switch]$skinny
     )
 
-    $dateFields = ('created','lastUpdated','statusChanged','passwordChanged','lastSync')
+    if ($skinny)
+    {
+        $dateFields = ('created','lastUpdated','statusChanged','passwordChanged')
+    } else {
+        $dateFields = ('created','lastUpdated','statusChanged','passwordChanged','lastSync')
+    }
 
     foreach ($df in $dateFields)
     {
@@ -1049,6 +1055,58 @@ function oktaDeleteUserbyID()
     return $request
 }
 
+function oktaSuspendUserbyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid
+    )
+
+    [string]$method = "POST"
+    [string]$resource = "/api/v1/users/" + $uid + "/lifecycle/suspend"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaUnSuspendUserbyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid
+    )
+
+    [string]$method = "POST"
+    [string]$resource = "/api/v1/users/" + $uid + "/lifecycle/unsuspend"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaGetUsersbyAppID()
 {
     param
@@ -1081,7 +1139,12 @@ function oktaGetUsersbyAppID()
     }
     foreach ($appUser in $request)
     {
-        $appUser = OktaAppUserfromJson -appUser $appUser
+        if ($skinny)
+        {
+            $appUser = OktaAppUserfromJson -appUser $appUser -skinny
+        } else {
+            $appUser = OktaAppUserfromJson -appUser $appUser
+        }
     }
     return $request
 }
@@ -1351,11 +1414,11 @@ function oktaListUsersbyDate()
         {
             if ($start -is [DateTime])
             {
-                $start = Get-Date $start.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.000Z"
+                $start = Get-Date $start.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
             }
             if ($stop -is [DateTime])
             {
-                $stop = Get-Date $stop.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.000Z"
+                $stop = Get-Date $stop.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
             }
         }
         catch
@@ -1368,7 +1431,7 @@ function oktaListUsersbyDate()
         {
             if ($date -is [DateTime])
             {
-                $date = Get-Date $date.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.000Z"
+                $date = Get-Date $date.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
             }
         }
         catch
@@ -2664,8 +2727,8 @@ function oktaVerifyPushbyUser()
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$username,
-        [parameter(Mandatory=$false)][ValidateLength(7,15)][String]$ClientIP = '127.0.0.1',
-        [parameter(Mandatory=$false)][ValidateLength(1,1024)][String]$UserAgent = 'Okta-PSModule/2.0'
+        [parameter(Mandatory=$false)][ValidateLength(7,15)][String]$ClientIP,
+        [parameter(Mandatory=$false)][ValidateLength(1,1024)][String]$UserAgent
     )
 
     if (!$uid)
@@ -2697,9 +2760,17 @@ function oktaVerifyPushbyUser()
 
     [string]$method = "POST"
     [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $push.id + '/verify'
-    $altHeaders = @{
-        'UserAgent' = $UserAgent
-        'X-Forwarded-For' = $ClientIP
+    if ( ($ClientIP -like "*") -or ($UserAgent -like "*") )
+    {
+        $altHeaders = New-Object System.Collections.Hashtable
+        if ($UserAgent -like "*")
+        {
+            $altHeaders.Add('UserAgent', $UserAgent)
+        }
+        if ($ClientIP -like "*")
+        {
+            $altHeaders.Add('X-Forwarded-For', $ClientIP)
+        }
     }
 
     try
@@ -2982,11 +3053,46 @@ function oktaListEvents()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [int]$limit=100,
-        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
+        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
+        [parameter(Mandatory=$false)][ValidateRange(1,180)][int]$sinceDaysAgo=7,
+        $since,
+        $until
     )
 
-    [string]$resource = "/api/v1/events?limit=" + $limit
+    if ($since)
+    {
+        if ($since -is [DateTime])
+        {
+            $since = Get-Date $since.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        } else {
+            $since = Get-Date (Get-Date $since).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        }
+    } else {
+        $now = (Get-Date).ToUniversalTime()
+        $since = Get-Date ($now.AddDays(($sinceDaysAgo*-1))) -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+    }
+
+    $filter = 'published gt "' + $since + '" and '
+
+    if ($until)
+    {
+        if ($until -is [DateTime])
+        {
+            $until = Get-Date $until.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        } else {
+            $until = Get-Date (Get-Date $until).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        }
+    } else {
+        $until = Get-Date (Get-Date).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+    }
+
+    $filter = $filter + 'published lt "' + $until + '"'
+
+    $filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
+
+    [string]$resource = "/api/v1/events?filter=" + $filter + "&limit=" + $limit
     [string]$method = "GET"
+
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
@@ -3008,18 +3114,45 @@ function oktaListLogs()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [int]$limit=100,
-        [parameter(Mandatory=$false)][ValidateRange(1,180)][int]$sinceDaysAgo=1,
-        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
+        [parameter(Mandatory=$false)][ValidateRange(1,180)][int]$sinceDaysAgo=7,
+        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
+        $since,
+        $until
     )
 
-    if ($sinceDaysAgo)
+    [string]$resource = "/api/v1/logs?limit=" + $limit
+
+    if ($since)
     {
-        $meow = Get-Date
-        $start = $meow.AddDays(-$sinceDaysAgo)
-        $since = Get-Date $start.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.000Z"
+        if ($since -is [DateTime])
+        {
+            $since = Get-Date $since.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        } else {
+            $since = Get-Date (Get-Date $since).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        }
+    } else {
+        $now = (Get-Date).ToUniversalTime()
+        $since = Get-Date ($now.AddDays(($sinceDaysAgo*-1))) -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
     }
 
-    [string]$resource = "/api/v1/logs?limit=" + $limit + "&since=" + $since
+    $resource = $resource + '&since=' + $since
+
+    if ($until)
+    {
+        if ($until -is [DateTime])
+        {
+            $until = Get-Date $until.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        } else {
+            $until = Get-Date (Get-Date $until).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        }
+    } else {
+        $until = Get-Date (Get-Date).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+    }
+
+    $resource = $resource + '&until=' + $until
+
+    $resource = [System.Web.HttpUtility]::UrlPathEncode($resource)
+
     [string]$method = "GET"
     try
     {
