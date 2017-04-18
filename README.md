@@ -7,7 +7,7 @@ This is something I have been building and adding to for a few years. I still ne
 --------
 
 ### Getting Started
-#Installation:
+# Installation:
 1. Download the module (git clone or download the zip)
 2. Place the module in your PSModulePath hint [Read more about PSModulePath Here] (https://msdn.microsoft.com/en-us/library/dd878324%28v=vs.85%29.aspx)
 
@@ -47,7 +47,7 @@ Write-Host $env:PSModulePath
                         }
 ```
 
-#Example Installation:
+# Example Installation:
 1. Open a command prompt
 
 ```
@@ -61,7 +61,7 @@ notepad Okta_org.ps1
 3. Modify file as required \(Update yourdomain, API Token you generated for that org etc\)
 4. Save the file
   
-#Basic Usage:
+# Basic Usage:
 1. Launch powershell \(or even better, the powershell ise\)
 2. Import the Okta Module
 3. Use
