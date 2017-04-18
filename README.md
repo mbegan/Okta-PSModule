@@ -50,12 +50,12 @@ Write-Host $env:PSModulePath
 #Example Installation:
 1. Open a command prompt
 
-    ``` powershell
+```
 cd %userprofile%\Documents\WindowsPowerShell\Modules
 git clone https://github.com/mbegan/Okta-PSModule.git Okta
 cd Okta
 notepad Okta_org.ps1
-    ```
+```
 
 2. Paste the basic format for the Okta_org.ps1 file listed Above.
 3. Modify file as required \(Update yourdomain, API Token you generated for that org etc\)
@@ -65,7 +65,7 @@ notepad Okta_org.ps1
 1. Launch powershell \(or even better, the powershell ise\)
 2. Import the Okta Module
 3. Use
-    ```powershell 
+```powershell 
 PS C:\> Import-Module Okta
 
 PS C:\> oktaGetUserbyID -oOrg prod -uid mbegan@gmail.com
@@ -83,12 +83,12 @@ passwordChanged : 2015-01-30T23:41:41.000Z
 profile         : @{email=mbegan@gmail.com; firstName=Matt; lastName=Egan; login=mbegan@gmail.com; mobilePhone=; secondEmail=}
 credentials     : @{password=; recovery_question=; provider=}
 _links          : @{resetPassword=; resetFactors=; expirePassword=; forgotPassword=; changeRecoveryQuestion=; deactivate=; changePassword=}
-    ```
+```
 When elements are returned in the API they are powershell objects, you can treat them as such.
 
 An example of something I do often.
 
-   ```powershell
+```powershell
 PS C:\Users\megan> $oktauser = oktaGetUserbyID -oOrg prev -uid mbegan@gmail.com
 [ GET https://varian.oktapreview.com/api/v1/users/mbegan@gmail.com ]
 
@@ -101,7 +101,7 @@ okta.throwaway 00g3hyrge0QfpnvM80h7
 
 PS C:\Users\megan> oktaDeleteUserfromGroup -oOrg prev -uid $oktauser.id -gid $groups[1].id
 [ DELETE https://varian.oktapreview.com/api/v1/groups/00g3hyrge0QfpnvM80h7/users/00u3j3jj2cLstvJL70h7 ]
-   ```
+```
 
 Some very basic examples, it can do much more.
 
