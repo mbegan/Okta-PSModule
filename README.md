@@ -11,9 +11,9 @@ This is something I have been building and adding to for a few years. I still ne
 1. Download the module (git clone or download the zip)
 2. Place the module in your PSModulePath hint [Read more about PSModulePath Here] (https://msdn.microsoft.com/en-us/library/dd878324%28v=vs.85%29.aspx)
 
-    ``` powershell
+```powershell
 Write-Host $env:PSModulePath
-    ```
+```
 
 3. Get an API Token for your Okta Org [Getting an API Token](http://developer.okta.com/docs/getting_started/getting_a_token.html)
 4. Create a file called Okta_org.ps1 (example content below) and save it in the directory with the Okta.psd1 and Okta.psm1 files.
