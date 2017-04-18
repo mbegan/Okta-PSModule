@@ -18,7 +18,7 @@ Write-Host $env:PSModulePath
 3. Get an API Token for your Okta Org [Getting an API Token](http://developer.okta.com/docs/getting_started/getting_a_token.html)
 4. Create a file called Okta_org.ps1 (example content below) and save it in the directory with the Okta.psd1 and Okta.psm1 files.
 
-    ``` powershell
+```powershell
 <# Okta_org.ps1 #>
 # Verbose will print various informative messages
 [Boolean]$oktaVerbose = $true
@@ -45,7 +45,7 @@ Write-Host $env:PSModulePath
                                 pageSize = [int]500
                                }
                         }
-    ```
+```
 
 #Example Installation:
 1. Open a command prompt
