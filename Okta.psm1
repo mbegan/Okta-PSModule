@@ -282,8 +282,8 @@ function _oktaRateLimitTimeRemaining()
 
 function _oktaRateLimitCheck()
 {
-    [double]$warn = .99
-    [double]$thottle = .98
+    [double]$warn = .50
+    [double]$thottle = .20
     #how many other calls per second should we assume are there for backoff calculations?
     [int]$cps = 16
 
@@ -322,6 +322,7 @@ function _oktaRateLimitCheck()
     }
 }
 
+$okta_UserAgent = "Okta-PSModule/2.1"
 function _oktaNewCall()
 {
     param
@@ -365,7 +366,7 @@ function _oktaNewCall()
         $request.UserAgent = $altHeaders['UserAgent']
         $altHeaders.Remove('UserAgent')
     } else {
-        $request.UserAgent = "Okta-PSModule/2.0"
+        $request.UserAgent = $okta_UserAgent
     }
 
     foreach ($alt in $altHeaders.Keys)
@@ -525,7 +526,7 @@ function _oktaRecGet()
     if ($oktaVerbose) { Write-Host '[' $request.Method $request.RequestUri ']' -ForegroundColor Cyan}
 
     $request.Accept = $encoding
-    $request.UserAgent = "Okta-PSModule/2.0"
+    $request.UserAgent = $okta_UserAgent
     $request.AutomaticDecompression = @([System.Net.DecompressionMethods]::Deflate, [System.Net.DecompressionMethods]::GZip)
 
     foreach($key in $headers.keys)
