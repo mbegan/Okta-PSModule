@@ -135,7 +135,8 @@ function oktaProcessHeaderLink()
 {
     param
     (
-        [Parameter(Mandatory=$true)][string]$Header=$false
+        [Parameter(Mandatory=$true)][string]$Header=$false,
+        [parameter(Mandatory=$false)][bool]$skinny=$false
     )
 
     if (!$Header){return $false}
@@ -148,7 +149,13 @@ function oktaProcessHeaderLink()
         #Yes I know it is a regex, but sometimes they work better
         if ($link.Trim() -match '^<(https://.+)>; rel="(\w+)"$')
         {
-            $olinks.add($Matches[2].trim(), $Matches[1].trim())
+            if ( ($skinny) -and (($Matches[2].Trim()) -eq "next") )
+            {
+                $skinnyNext = $Matches[1].Trim().Replace("/users?","/skinny_users?")
+                $olinks.add($Matches[2].Trim(), $skinnyNext)
+            } else {
+                $olinks.add($Matches[2].Trim(), $Matches[1].Trim())
+            }
         }
     }
     return $olinks
@@ -273,6 +280,48 @@ function _oktaRateLimitTimeRemaining()
     return $timeToReset.TotalSeconds
 }
 
+function _oktaRateLimitCheck()
+{
+    [double]$warn = .99
+    [double]$thottle = .98
+    #how many other calls per second should we assume are there for backoff calculations?
+    [int]$cps = 16
+
+    $remain = $rateLimt.Remaining
+    $limit = $rateLimt.Limit
+
+    $used = ($remain / $limit)
+
+    $limit_note = "You have $remain out of $limit aka: $used left in the tank"
+
+    if ($used -lt $warn)
+    {
+        $reset = _oktaRateLimitTimeRemaining -seconds $rateLimt.Reset
+        $limit_note = "You have $remain out of $limit aka: $used in the next $reset seconds"
+        Write-Warning($limit_note)
+
+        if ($used -lt $thottle)
+        {
+            if ($reset -lt 10) { $reset = 10 }
+            # how aggressive should we sleep?  same logic for now.
+            if ( ($reset * $cps) -gt ($remain) )
+            {
+                $aggr = "hard"
+                $sleepTime = (( ($reset * $cps) / $remain) * 1000)
+            } else {
+                $aggr = "soft"
+                $sleepTime = (( ($reset * $cps) / $remain) * 10)
+            } 
+
+            Write-Warning("Throttling " + $aggr + " for: " + $sleepTime + " milliseconds" )
+            sleep -Milliseconds $sleepTime
+        }
+
+    } else {
+        Write-Verbose($limit_note)
+    }
+}
+
 function _oktaNewCall()
 {
     param
@@ -282,7 +331,8 @@ function _oktaNewCall()
         [String]$resource,
         [Object]$body = @{},
         [boolean]$enablePagination = $OktaOrgs[$oOrg].enablePagination,
-        [Object]$altHeaders
+        [Object]$altHeaders,
+        [parameter(Mandatory=$false)][bool]$skinny=$false
     )
 
     $headers = New-Object System.Collections.Hashtable
@@ -364,7 +414,7 @@ function _oktaNewCall()
         {
             try
             {
-                $link = oktaProcessHeaderLink -Header $Hlink
+                $link = oktaProcessHeaderLink -Header $Hlink -skinny $skinny
             }
             catch
             {
@@ -374,13 +424,13 @@ function _oktaNewCall()
             $link = $false
         }
 
-        if ($response.Headers['X-Rate-Limit-Reset'])
+        #Grab rate limit headers
+        if ( ($response.Headers['X-Rate-Limit-Reset']) -and ($response.Headers['X-Rate-Limit-Reset']) -and ($response.Headers['X-Rate-Limit-Reset']) )
         {
-            $reset = _oktaRateLimitTimeRemaining -seconds $response.Headers['X-Rate-Limit-Reset']
-            $remain = $response.Headers['X-Rate-Limit-Remaining']
-            $limit = $response.Headers['X-Rate-Limit-Limit']
-            $limit_note = "You have $remain out of $limit in the next $reset seconds"
-            Write-Verbose($limit_note)
+            $rateLimt = @{ Reset = $response.Headers['X-Rate-Limit-Reset']
+                           Limit = $response.Headers['X-Rate-Limit-Limit']
+                           Remaining = $response.Headers['X-Rate-Limit-Remaining']
+                         }
         }
 
         if ($response.Headers['X-Okta-Request-Id'])
@@ -419,6 +469,13 @@ function _oktaNewCall()
         $response.Close()
         $response.Dispose()
     }
+
+    #Enforce Ratelimiting
+    if ($rateLimt)
+    {
+        _oktaRateLimitCheck
+    }
+
     if (($link.next) -and ($enablePagination))
     {
         if ($oktaVerbose) { Write-Host "fetching next page 1 : " -ForegroundColor Cyan -NoNewline}
@@ -426,7 +483,7 @@ function _oktaNewCall()
         {
             'GET'
             {
-                _oktaRecGet -url $link.next -col $psobj -oOrg $oOrg -loopcount 1
+                _oktaRecGet -url $link.next -col $psobj -oOrg $oOrg -loopcount 1 -skinny $skinny
                 continue     
             }
             DEFAULT
@@ -446,7 +503,8 @@ function _oktaRecGet()
         [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$oOrg,
         [string]$url,
         [array]$col,
-        [int]$loopcount = 0
+        [int]$loopcount = 0,
+        [parameter(Mandatory=$false)][bool]$skinny=$false
     )
 
     $headers = New-Object System.Collections.Hashtable
@@ -483,7 +541,7 @@ function _oktaRecGet()
         {
             try
             {
-                $link = oktaProcessHeaderLink -Header $Hlink
+                $link = oktaProcessHeaderLink -Header $Hlink -skinny $skinny
                 #Write-Verbose($link)
             }
             catch
@@ -494,13 +552,13 @@ function _oktaRecGet()
             $link = $false
         }
 
-        if ($response.Headers['X-Rate-Limit-Reset'])
+        #Grab rate limit headers
+        if ( ($response.Headers['X-Rate-Limit-Reset']) -and ($response.Headers['X-Rate-Limit-Reset']) -and ($response.Headers['X-Rate-Limit-Reset']) )
         {
-            $reset = _oktaRateLimitTimeRemaining -seconds $response.Headers['X-Rate-Limit-Reset']
-            $remain = $response.Headers['X-Rate-Limit-Remaining']
-            $limit = $response.Headers['X-Rate-Limit-Limit']
-            $limit_note = "You have $remain out of $limit in the next $reset seconds"
-            Write-Verbose($limit_note)
+            $rateLimt = @{ Reset = $response.Headers['X-Rate-Limit-Reset']
+                           Limit = $response.Headers['X-Rate-Limit-Limit']
+                           Remaining = $response.Headers['X-Rate-Limit-Remaining']
+                         }
         }
 
         if ($response.Headers['X-Okta-Request-Id'])
@@ -539,11 +597,18 @@ function _oktaRecGet()
         $response.Close()
         $response.Dispose()
     }
+
+    #Enforce Ratelimiting
+    if ($rateLimt)
+    {
+        _oktaRateLimitCheck
+    }
+
     if ($link.next)
     {
         $loopcount++
         if ($oktaVerbose) { Write-Host "fetching next page $loopcount : " -ForegroundColor Cyan -NoNewline}
-        _oktaRecGet -url $link.next -col $col -loopcount $loopcount -oOrg $oOrg    
+        _oktaRecGet -url $link.next -col $col -loopcount $loopcount -oOrg $oOrg -skinny $skinny
     } else {
         return $col
     }
@@ -1127,7 +1192,7 @@ function oktaGetUsersbyAppID()
     
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -skinny $skinny
     }
     catch
     {
@@ -1768,10 +1833,42 @@ function oktaGetGroupbyId()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$true)][alias("groupId")][ValidateLength(20,20)][String]$gid
+        [parameter(Mandatory=$true)][alias("groupId")][ValidateLength(20,20)][String]$gid,
+        [parameter(Mandatory=$false)][switch]$expand
     )
     
     [string]$resource  = '/api/v1/groups/' + $gid
+    if ($expand)
+    {
+        $resource += '?expand=app,stats'
+    }
+    [string]$method = "GET"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaGetGroupStatsbyId()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][alias("groupId")][ValidateLength(20,20)][String]$gid
+    )
+    
+    #[string]$resource  = '/api/v1/groups/' + $gid + '/stats'
+    [string]$resource  = '/api/v1/groups/' + $gid + '?expand=stats,app,user,groupPushMapping'
     [string]$method = "GET"
     
     try
@@ -1858,7 +1955,8 @@ function oktaListGroups()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$false)][String]$query,
-        [parameter(Mandatory=$false)][int]$limit=$OktaOrgs[$oOrg].pageSize
+        [parameter(Mandatory=$false)][int]$limit=$OktaOrgs[$oOrg].pageSize,
+        [parameter(Mandatory=$false)][switch]$expand
     )
        
     [string]$resource = "/api/v1/groups?limit=" + $limit
@@ -1866,6 +1964,12 @@ function oktaListGroups()
     {
         $resource += "&q=" + $query
     }
+
+    if ($expand)
+    {
+        $resource += "&expand=app,stats"
+    }
+
     [string]$method = "GET"
     
     try
@@ -2165,7 +2269,7 @@ function oktaGetGroupMembersbyId()
 
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true -skinny $skinny
     }
     catch
     {
@@ -2967,6 +3071,32 @@ function oktaGetMapping()
     return $request
 }
 
+function oktaGetUserSchema()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][String]$sid="default"
+    )
+
+    [string]$method = "GET"
+    [string]$resource = '/api/v1/meta/schemas/user/' + $sid
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaGetSchemabyID()
 {
     param
@@ -3113,14 +3243,15 @@ function oktaListLogs()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [int]$limit=100,
+        [parameter(Mandatory=$false)][ValidateRange(1,100)][int]$limit=100,
         [parameter(Mandatory=$false)][ValidateRange(1,180)][int]$sinceDaysAgo=7,
-        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
-        $since,
-        $until
+        [parameter(Mandatory=$false)][boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
+        [parameter(Mandatory=$false)][string]$since,
+        [parameter(Mandatory=$false)][string]$until,
+        [parameter(Mandatory=$false)][ValidateSet("ASCENDING","DECENDING")][string]$order="ASCENDING"
     )
 
-    [string]$resource = "/api/v1/logs?limit=" + $limit
+    [string]$resource = "/api/v1/logs?limit=" + $limit + "&sortOrder=" + $order
 
     if ($since)
     {
@@ -3168,8 +3299,6 @@ function oktaListLogs()
     }
     return $request
 }
-
-
 
 ################## Identity Providers ###########################
 
@@ -3468,6 +3597,236 @@ function oktaDeleteProviderKey()
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+
+################## Zones ###########################
+
+function oktaListZones()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][ValidateLength(20,36)][String]$zid
+    )
+
+    [string]$method = "GET"
+    [string]$resource = '/api/v1/org/zones'
+
+
+
+    if ($zid)
+    {
+        $resource += '/' + $zid
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaCreateZone()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][ValidateSet("IP")][String]$type="IP",
+        [parameter(Mandatory=$true)][ValidateLength(1,128)][String]$name
+    )
+
+    [string]$method = "POST"
+    [string]$resource = '/api/v1/org/zones/'
+
+
+    $cidr=@{"type" = "CIDR";"value" = "132.190.0.0/16"}
+    $range = @{"type" = "RANGE";"value" = "132.190.192.10"}
+    $gateways = @($cidr)
+    $proxies = @($range)
+    $request = @{ 
+                  type = $type
+                  name = $name
+                  status = "ACTIVE"
+                  system = $false
+                  id = $null
+                  created = $null
+                  lastUpdated = $null
+                  gateways = $gateways
+                  proxies = $proxies
+                }
+
+    if ($zid)
+    {
+        $resource += '/' + $zid
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $request
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+################## Orgs ###########################
+
+function oktaListOrgs()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][String]$oid
+    )
+
+    [string]$method = "GET"
+    [string]$resource = '/api/v1/orgs'
+
+
+
+    if ($oid)
+    {
+        $resource += '/' + $oid
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaListOANApps()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][String]$appname
+    )
+
+    [string]$method = "GET"
+    [string]$resource = '/api/v1/catalog/apps'
+
+
+
+    if ($appname)
+    {
+        $resource += '/' + $appname
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaListAppsAssignedbyGroupId()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][alias("groupId")][ValidateLength(20,20)][String]$gid
+    )
+    
+    [string]$resource  = '/api/v1/groups/' + $gid + '/apps'
+    [string]$method = "GET"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaListAppAssignments()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][String]$other
+    )
+
+    [string]$method = "GET"
+    [string]$resource = '/api/v1/appInstances'
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+################## _links ###########################
+
+function oktaFetch_link()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][String]$_link
+    )
+
+    try
+    {
+        $request = _oktaNewCall -method "GET" -resource $_link -oOrg $oOrg
     }
     catch
     {
