@@ -324,11 +324,6 @@ function _oktaRateLimitCheck()
 
 $okta_UserAgent = "Okta-PSModule/2.1"
 
-function _oktaCall3()
-{
-    #cold cold cold call
-}
-
 function _oktaNewCall()
 {
     param
