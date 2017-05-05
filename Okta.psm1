@@ -291,8 +291,8 @@ function _oktaRateLimitCheck()
     $limit = $rateLimt.Limit
 
     $used = ($remain / $limit)
-
-    $limit_note = "You have $remain out of $limit aka: $used left in the tank"
+    $usedpct = $used.ToString("P")
+    $limit_note = "You have $remain out of $limit aka: $usedpct left in the tank"
 
     if ($used -lt $warn)
     {
@@ -323,6 +323,12 @@ function _oktaRateLimitCheck()
 }
 
 $okta_UserAgent = "Okta-PSModule/2.1"
+
+function _oktaCall3()
+{
+    #cold cold cold call
+}
+
 function _oktaNewCall()
 {
     param
@@ -449,7 +455,7 @@ function _oktaNewCall()
         }
         catch
         {
-            Write-Error $txt
+            Write-Error($_.Exception.Message)
             throw "Json Exception"
         }
     }
@@ -578,7 +584,8 @@ function _oktaRecGet()
         }
         catch
         {
-            throw "Json Exception : " + $txt
+            Write-Error($_.Exception.Message)
+            throw "Json Exception"
         }
     }
     catch [Net.WebException]
@@ -1405,7 +1412,7 @@ function oktaListUsersbyStatus()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [ValidateSet('STAGED','PROVISIONED','ACTIVE','RECOVERY','LOCKED_OUT','PASSWORD_EXPIRED','DEPROVISIONED')][string]$status,
+        [ValidateSet('STAGED','PROVISIONED','ACTIVE','RECOVERY','LOCKED_OUT','PASSWORD_EXPIRED','SUSPENDED','DEPROVISIONED')][string]$status,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
     )
@@ -3618,7 +3625,7 @@ function oktaListZones()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$false)][ValidateLength(20,36)][String]$zid
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$zid
     )
 
     [string]$method = "GET"
@@ -3656,7 +3663,7 @@ function oktaCreateZone()
     )
 
     [string]$method = "POST"
-    [string]$resource = '/api/v1/org/zones/'
+    [string]$resource = '/api/v1/org/zones'
 
 
     $cidr=@{"type" = "CIDR";"value" = "132.190.0.0/16"}
@@ -3675,10 +3682,114 @@ function oktaCreateZone()
                   proxies = $proxies
                 }
 
-    if ($zid)
+    try
     {
-        $resource += '/' + $zid
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $request
     }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaMakeZoneNet()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][ValidateSet("CIDR","RANGE")][String]$type,
+        [parameter(Mandatory=$true)][String]$address 
+    )
+
+    $obj = New-Object psobject -Property @{"type" = $type;"value" = $address}
+    #$range = @{"type" = "RANGE";"value" = "132.190.192.10"}
+    return $obj
+}
+
+function oktaUpdateZone()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$zid,
+        [parameter(Mandatory=$false)][ValidateLength(1,128)][String]$newName,
+        [parameter(Mandatory=$false)][ValidateSet("Add","Remove")][String]$action,
+        [parameter(Mandatory=$false)][ValidateSet("gateways","proxies")][String]$section,
+        [parameter(Mandatory=$false)][object]$net
+    )
+
+    [string]$method = "PUT"
+    [string]$resource = '/api/v1/org/zones/' + $zid
+
+    $current = oktaListZones -zid $zid -oOrg $oOrg
+    $eNets = $current.$section
+    $newNets = New-Object System.Collections.ArrayList
+    $worktoDo=$false
+
+    if ($action -eq "Remove")
+    {
+        foreach ($eNet in $eNets)
+        {
+            if ( ($net.type -eq $eNet.type) -and ($net.value -eq $eNet.value) )
+            {
+                Write-Verbose("Removing " + $eNet.type + " with value of: " + $eNet.value)
+                $worktoDo=$true
+            } else {
+                $_c = $newNets.Add($eNet)
+            }
+        }
+    }
+
+    if ($action -eq "Add")
+    {
+        $worktoDo=$true
+        foreach ($eNet in $eNets)
+        {
+            if ( ($net.type -eq $eNet.type) -and ($net.value -eq $eNet.value) )
+            {
+                Write-Verbose("Skipping " + $eNet.type + " with value of: " + $eNet.value)
+                $worktoDo=$false
+            } else {
+                $_c = $newNets.Add($eNet)
+            }
+        }
+        if (($worktoDo) -or ($eNets.Count -lt 1))
+        {
+            $_c = $newNets.Add($net)
+            $worktoDo=$true
+        }
+    }
+
+    $name = $current.name
+    
+    if ($newName)
+    {
+        if (!$newName -eq $current.name)
+        {
+            $worktoDo = $true
+            $name = $newName
+        }
+    }
+
+    if ($section -eq "gateways")
+    {
+        $otherSection = "proxies"
+    } else {
+        $otherSection = "gateways"
+    }
+
+    $request = @{ 
+                  type = $current.type
+                  name = $name
+                  system = $current.system
+                  status = $current.status
+                  $section = $newNets
+                  $otherSection= $current.$otherSection
+                }
 
     try
     {
