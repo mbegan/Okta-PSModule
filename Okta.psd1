@@ -23,13 +23,13 @@ Copyright = 'Use as you see fit, credit is always nice'
 Description = 'This module contains powershell wrappers to leverage the Okta API functions described here http://developer.okta.com/docs/getting_started/design_principles.html'
 
 # Minimum version of the Windows PowerShell engine required by this module
-PowerShellVersion = '3.0'
+PowerShellVersion = '1.0'
 
 # Name of the Windows PowerShell host required by this module
 PowerShellHostName = ''
 
 # Minimum version of the Windows PowerShell host required by this module
-PowerShellHostVersion = '3.0'
+PowerShellHostVersion = '1.0'
 
 # Minimum version of the .NET Framework required by this module
 DotNetFrameworkVersion = ''
