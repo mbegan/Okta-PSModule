@@ -441,11 +441,13 @@ function _oktaMakeCall()
     {
         try
         {
-            $result += ConvertFrom-Json -InputObject $request2.Content -Verbose:$oktaVerbose
+            $result = ConvertFrom-Json -InputObject $request2.Content -Verbose:$oktaVerbose
         }
         catch
         {
             Write-Warning($_.Exception.Message)
+            $result = $false
+            $next = $false
         }
     } else {
         $result = $false
@@ -513,9 +515,9 @@ function _oktaNewCall()
             $response = _oktaMakeCall -method $method -uri $response.next -headers $headers -body $body
             if ($response.result)
             {
-               # I have seen a failure.... return to top of loop.  incriemnt erroc ount
+               $result += $response.result
             } else {
-                $result += $response.result
+                # I have seen a failure.... return to top of loop.  incriemnt erroc ount
             }
         }
         return $result
