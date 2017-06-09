@@ -132,11 +132,9 @@ function oktaProcessHeaderLink()
 {
     param
     (
-        [Parameter(Mandatory=$true)][string]$Header,
-        [parameter(Mandatory=$false)][bool]$skinny=$false
+        [Parameter(Mandatory=$true)][string]$Header
     )
 
-    if (!$Header){Write-Verbose("whiskey");return $false}
 
     [HashTable]$olinks = @{}
 
@@ -146,13 +144,7 @@ function oktaProcessHeaderLink()
         #Yes I know it is a regex, but sometimes they work better
         if ($link.Trim() -match '^<(https://.+)>; rel="(\w+)"$')
         {
-            if ( ($skinny) -and (($Matches[2].Trim()) -eq "next") )
-            {
-                $skinnyNext = $Matches[1].Trim().Replace("/users?","/skinny_users?")
-                $olinks.add($Matches[2].Trim(), $skinnyNext)
-            } else {
-                $olinks.add($Matches[2].Trim(), $Matches[1].Trim())
-            }
+            $olinks.add($Matches[2].Trim(), $Matches[1].Trim())
         }
     }
     return $olinks
@@ -324,7 +316,7 @@ function _oktaRateLimitCheck()
             }
 
             Write-Warning("Throttling " + $aggr + " for: " + $sleepTime + " milliseconds" )
-            sleep -Milliseconds $sleepTime
+            Start-Sleep -Milliseconds $sleepTime
         }
 
     } else {
@@ -341,7 +333,6 @@ function _oktaMakeCall()
         [parameter(Mandatory=$true)][ValidateSet("Get", "Head", "Post", "Put", "Delete")][String]$method,
         [parameter(Mandatory=$true)][String]$uri,
         [parameter(Mandatory=$true)][hashtable]$headers,
-        [parameter(Mandatory=$false)][bool]$skinny=$false,
         [parameter(Mandatory=$false)][Object]$body = @{}
     )
 
@@ -365,10 +356,8 @@ function _oktaMakeCall()
         if ( ($method -eq "Post") -or ($method -eq "Put") )
         {
             $postData = ConvertTo-Json $body -Depth 10
-            if ($oktaVerbose)
-            {
-                Write-Verbose($postData)
-            }
+            Write-Verbose($postData)
+
             $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $okta_UserAgent -Headers $headers `
                         -ContentType $contentType -Verbose:$oktaVerbose -Body $postData -ErrorVariable evar       
         } else {
@@ -412,7 +401,7 @@ function _oktaMakeCall()
     if ( $request2 )
     {
         $responseHeaders = $request2.Headers
-        Write-Verbose($responseHeaders.keys)     
+        #Write-Verbose($responseHeaders.keys)     
     }
 
     if ($responseHeaders['X-Okta-Request-Id'])
@@ -424,7 +413,7 @@ function _oktaMakeCall()
     {
         try
         {
-            $link = oktaProcessHeaderLink -Header $responseHeaders['Link'] -skinny $skinny
+            $link = oktaProcessHeaderLink -Header $responseHeaders['Link']
         }
         catch
         {
@@ -476,8 +465,7 @@ function _oktaNewCall()
         [parameter(Mandatory=$true)][String]$resource,
         [parameter(Mandatory=$false)][Object]$body = @{},
         [parameter(Mandatory=$false)][boolean]$enablePagination = $OktaOrgs[$oOrg].enablePagination,
-        [parameter(Mandatory=$false)][Object]$altHeaders,
-        [parameter(Mandatory=$false)][bool]$skinny=$false
+        [parameter(Mandatory=$false)][Object]$altHeaders
     )
 
     $headers = New-Object System.Collections.Hashtable
@@ -509,7 +497,7 @@ function _oktaNewCall()
         $_c = $headers.Add($alt,$altHeaders[$alt])
     }
 
-    $response = _oktaMakeCall -method $method -uri $uri -headers $headers -body $body -skinny:$skinny
+    $response = _oktaMakeCall -method $method -uri $uri -headers $headers -body $body
     <#
         .ratelimit = ratelimit headers or false
         .next = a link or false
@@ -522,7 +510,7 @@ function _oktaNewCall()
         while ($response.next)
         {
             Write-Verbose("Collected: " + $response.result.Count + " Going for the next page")
-            $response = _oktaMakeCall -method $method -uri $response.next -headers $headers -body $body -skinny:$skinny
+            $response = _oktaMakeCall -method $method -uri $response.next -headers $headers -body $body
             if ($response.result)
             {
                # I have seen a failure.... return to top of loop.  incriemnt erroc ount
@@ -1114,7 +1102,7 @@ function oktaGetUsersbyAppID()
     
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -skinny $skinny
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
     }
     catch
     {
@@ -1124,7 +1112,8 @@ function oktaGetUsersbyAppID()
         }
         throw $_
     }
-    foreach ($appUser in $request)
+    
+    <#foreach ($appUser in $request)
     {
         if ($skinny)
         {
@@ -1132,7 +1121,7 @@ function oktaGetUsersbyAppID()
         } else {
             $appUser = OktaAppUserfromJson -appUser $appUser
         }
-    }
+    }#>
     return $request
 }
 
@@ -1762,7 +1751,7 @@ function oktaGetGroupbyId()
     [string]$resource  = '/api/v1/groups/' + $gid
     if ($expand)
     {
-        $resource += '?expand=app,stats'
+        $resource += '?expand=app,stats,apps'
     }
     [string]$method = "Get"
     
@@ -2191,7 +2180,7 @@ function oktaGetGroupMembersbyId()
 
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true -skinny $skinny
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
     }
     catch
     {
@@ -2831,7 +2820,7 @@ function _oktaPollPushLink()
     {
         $c++
         $sleepy = (2 * ($c/2))
-        sleep -Seconds $sleepy
+        Start-Sleep -Seconds $sleepy
         Write-Verbose("Adaptive sleeping for: " + $sleepy + " Seconds") 
         [string]$method = $factorResult._links.poll.hints.allow[0]
         [string]$resource = $factorResult._links.poll.href
@@ -3539,17 +3528,20 @@ function oktaListZones()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$zid
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$zid,
+        [parameter(Mandatory=$false)][String]$filter
     )
 
     [string]$method = "Get"
     [string]$resource = '/api/v1/org/zones'
 
-
-
     if ($zid)
     {
         $resource += '/' + $zid
+    }
+    elseif ($filter)
+    {
+        $resource += ("?filter=" + $filter)
     }
 
     try
@@ -3853,6 +3845,93 @@ function oktaFetch_link()
     try
     {
         $request = _oktaNewCall -method "Get" -resource $_link -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+################## Policies ###########################
+
+function oktaListPolicies()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][ValidateRange(1,100)][String]$limit=20,
+        [parameter(Mandatory=$true)][ValidateSet("OKTA_SIGN_ON", "PASSWORD", "MFA_ENROLL")][String]$type,
+        [parameter(Mandatory=$false)][switch]$rules,
+        [parameter(Mandatory=$false)][string]$pid
+    )
+
+    [string]$method = "Get"
+    [string]$resource = '/api/v1/policies'
+
+    if ($pid)
+    {
+        $resource += '/' + $pid
+    }
+
+    $resource += ("?limit=" + $limit)
+
+    if ($type)
+    {
+        $resource += ("&type=" + $type)
+    }
+
+    if ($rules)
+    {
+        $resource += "&expand=rules"
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+################## GroupRules ###########################
+
+function oktaListGroupRules()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][ValidateRange(1,100)][String]$limit=50,
+        [parameter(Mandatory=$false)][string]$grid
+    )
+
+    [string]$method = "Get"
+    [string]$resource = '/api/v1/groups/rules'
+
+    if ($pid)
+    {
+        $resource += '/' + $grid
+    }
+
+    if ($rules)
+    {
+        $resource += "&expand=rules"
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
     }
     catch
     {
