@@ -446,11 +446,11 @@ function _oktaMakeCall()
         catch
         {
             Write-Warning($_.Exception.Message)
-            $result = $false
+            $result = $()
             $next = $false
         }
     } else {
-        $result = $false
+        throw('No request2 object found')
     }
 
     if ($rateLimt){ _oktaRateLimitCheck }
@@ -522,7 +522,7 @@ function _oktaNewCall()
         }
         return $result
     } else {
-        return $false
+        return @()
     }
 }
 
@@ -3095,11 +3095,12 @@ function oktaListEvents()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [int]$limit=100,
+        [int]$limit=1000,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
         [parameter(Mandatory=$false)][ValidateRange(1,180)][int]$sinceDaysAgo=7,
-        $since,
-        $until
+        [parameter(Mandatory=$false)]$since,
+        [parameter(Mandatory=$false)]$until,
+        [parameter(Mandatory=$false)]$after
     )
 
     if ($since)
@@ -3134,6 +3135,10 @@ function oktaListEvents()
     #$filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
 
     [string]$resource = "/api/v1/events?filter=" + $filter + "&limit=" + $limit
+    if ($after)
+    {
+        $resource += "&after=$after"
+    }
     [string]$method = "Get"
 
     try
