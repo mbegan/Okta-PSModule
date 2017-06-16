@@ -1,7 +1,7 @@
 # Okta-PSModule Documentation
 ======================
 
-This is not to be confused with or in competition with the official Okta [Powershell/CSharp module] (https://github.com/okta/oktasdk-csharp/tree/master/Okta.Core.Automation).
+This is not to be confused with or in competition with the official Okta [Powershell/CSharp module](https://github.com/okta/oktasdk-csharp/tree/master/Okta.Core.Automation).
 This is something I have been building and adding to for a few years. I still need the functionality it provides on a near daily basis so I figured it was time to share.
 
 --------
@@ -9,7 +9,7 @@ This is something I have been building and adding to for a few years. I still ne
 # Getting Started
 ## Installation:
 1. Download the module (git clone or download the zip)
-2. Place the module in your PSModulePath hint [Read more about PSModulePath Here] (https://msdn.microsoft.com/en-us/library/dd878324%28v=vs.85%29.aspx)
+2. Place the module in your PSModulePath hint [Read more about PSModulePath Here](https://msdn.microsoft.com/en-us/library/dd878324%28v=vs.85%29.aspx)
 
 ```powershell
 Write-Host $env:PSModulePath
@@ -109,7 +109,7 @@ It supports pagination, so grabbing ALL of your users or groups is not a problem
 
 I'll add more details on usage later, if you have a specific use case ask away i'll post an example.
 
-Also browse on over to [Okta community] (https://support.okta.com/help/community) for more discussion
+Also browse on over to [Okta community](https://support.okta.com/help/community) for more discussion
 
 ### Available Commands
 - oktaActivateUserbyId
