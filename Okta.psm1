@@ -277,8 +277,8 @@ function _oktaRateLimitCheck()
     #how many other calls per second should we assume are there for backoff calculations?
     [int]$cps = 16
 
-    $remain = $rateLimt.Remaining
-    $limit = $rateLimt.Limit
+    $remain = [int][string]$rateLimt.Remaining
+    $limit = [int][string]$rateLimt.Limit
 
     $used = ($remain / $limit)
     $usedpct = $used.ToString("P")
@@ -1034,7 +1034,8 @@ function oktaGetUserbyID()
         [parameter(Mandatory=$true)][alias("uid")][ValidateLength(1,100)][String]$userName
     )
     #UrlEncode
-    $uid = [System.Web.HttpUtility]::UrlPathEncode($userName)
+    #$uid = [System.Web.HttpUtility]::UrlPathEncode($userName)
+    $uid = $userName
     
     [string]$method = "Get"
     [string]$resource = "/api/v1/users/" + $uid
