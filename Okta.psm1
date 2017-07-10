@@ -325,6 +325,16 @@ function _oktaRateLimitCheck()
 }
 
 $okta_UserAgent = "Okta-PSModule/2.2"
+$resHeaders = @(
+    "X-Okta-Request-Id",
+    "X-Rate-Limit-Limit",
+    "X-Rate-Limit-Remaining",
+    "X-Rate-Limit-Reset",
+    "Link",
+    "Content-Length",
+    "Content-Type",
+    "Date"
+)
 
 function _oktaMakeCall()
 {
@@ -343,9 +353,9 @@ function _oktaMakeCall()
         {
             if ($h -eq 'Authorization')
             {
-                Write-Verbose("Hdr: " + $h + " -> SSWS xXxXxXxxXxxXxXxXxxXx")
+                Write-Verbose("Req-Hdr: " + $h + " -> SSWS xXxXxXxxXxxXxXxXxxXx")
             } else {
-                Write-Verbose("Hdr: " + $h + " -> " + $headers[$h])
+                Write-Verbose("Req-Hdr: " + $h + " -> " + $headers[$h])
             }
         }
     }
@@ -367,41 +377,61 @@ function _oktaMakeCall()
     }
     catch [System.Net.WebException]
     {
-        Write-Warning($_.Exception.GetType().FullName + " : " + $_.Exception.Response.StatusCode)
-        $code = $_.Exception.Response.StatusCode
+        
+        $code = $evar[0].ErrorRecord.Exception.Response.StatusCode
+        
+        if ($evar[0].InnerException.Response.Headers)
+        {
+            $responseHeaders = $evar[0].InnerException.Response.Headers
+            Write-Warning("Okta Request ID: " + $responseHeaders['X-Okta-Request-Id'])
+        }
+        if ($evar[0].ErrorRecord.ErrorDetails.Message)
+        {
+            Write-Warning("Okta Said: " + $evar[0].ErrorRecord.ErrorDetails.Message )
+        }
+
         switch ($code)
         {
             "429"
             {
                 Write-Warning("You hit the rate limit!")
-                $responseHeaders = $evar[0].InnerException.Response.Headers
-                Write-Warning("Okta Request ID: " + $responseHeaders['X-Okta-Request-Id'])
             }
             "BadRequest"
             {
                 Write-Warning("You're request was bad!")
-                $responseHeaders = $evar[0].InnerException.Response.Headers
-                Write-Warning("Okta Request ID: " + $responseHeaders['X-Okta-Request-Id'])
+                #Write-Warning($_.ErrorDetails.Message)
+                throw($evar[0].ErrorRecord.Exception.Message)
             }
             "NotFound"
             {
                 Write-Warning("You're item wasn't found!")
-                $responseHeaders = $evar[0].InnerException.Response.Headers
-                Write-Warning("Okta Request ID: " + $responseHeaders['X-Okta-Request-Id'])
+                throw($evar[0].ErrorRecord.Exception.Message)
             }
-            default { Write-Warning("Okta RequestID: " + $_.Exception.Response.Headers['X-Okta-Request-Id'])}
+            default
+            {
+                #Write-Warning("Okta RequestID: " + $_.Exception.Response.Headers['X-Okta-Request-Id'])
+                Write-Warning($evar[0].ErrorRecord.Exception.GetType().FullName + " : " + $code)
+                throw($evar[0].ErrorRecord.Exception.Message)
+            }
         }   
     }
     catch
     {
         Write-Warning("Catchall:" + $_.Exception.GetType().FullName + " : " + $_.Exception.Message )
+        throw($_.Exception.Message)
     }
 
     #Process Response Headers, debug, pagination and rate limiting
     if ( $request2 )
     {
         $responseHeaders = $request2.Headers
-        #Write-Verbose($responseHeaders.keys)     
+        foreach ($rh in $responseHeaders.keys)
+        {
+            if ($resHeaders.Contains($rh))
+            {
+                Write-Verbose("Res-Hdr: " + $rh + " -> " + $responseHeaders[$rh])
+            }
+        }
     }
 
     if ($responseHeaders['X-Okta-Request-Id'])
@@ -450,7 +480,7 @@ function _oktaMakeCall()
             $next = $false
         }
     } else {
-        throw('No request2 object found')
+        $result = $()
     }
 
     if ($rateLimt){ _oktaRateLimitCheck }
@@ -499,7 +529,17 @@ function _oktaNewCall()
         $_c = $headers.Add($alt,$altHeaders[$alt])
     }
 
-    $response = _oktaMakeCall -method $method -uri $uri -headers $headers -body $body
+    try
+    {
+        $response = _oktaMakeCall -method $method -uri $uri -headers $headers -body $body
+    }
+    catch
+    {
+        Write-Warning($_.Exception.Message)
+        Write-Warning("Encountered error, returning limited set")
+        $response=$false
+    }
+    
     <#
         .ratelimit = ratelimit headers or false
         .next = a link or false
@@ -509,16 +549,28 @@ function _oktaNewCall()
     if ($response.result)
     {
         $result = $response.result
+        $lastUri = $response.next
         while ($response.next)
         {
-            Write-Verbose("Collected: " + $response.result.Count + " Going for the next page")
-            $response = _oktaMakeCall -method $method -uri $response.next -headers $headers -body $body
+            Write-Verbose("Collected: " + $response.result.Count + " we've seen: " + $result.count + " so far, Going for the next page")
+            try
+            {
+                $response = _oktaMakeCall -method $method -uri $response.next -headers $headers -body $body
+            }
+            catch
+            {
+                Write-Warning($_.Exception.Message)
+                Write-Warning("Encountered error, returning limited set")
+                $response=$false
+            }
+
             if ($response.result)
             {
-               $result += $response.result
+                $result += $response.result
             } else {
-                # I have seen a failure.... return to top of loop.  incriemnt erroc ount
+                Write-Verbose("last result: " + $lastUri)
             }
+            $lastUri = $response.next
         }
         return $result
     } else {
@@ -3195,7 +3247,7 @@ function oktaListLogs()
             $until = Get-Date (Get-Date $until).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
         }
     } else {
-        $until = Get-Date (Get-Date).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        $until = "now"
     }
 
     $resource = $resource + '&until=' + $until
