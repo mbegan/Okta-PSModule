@@ -564,7 +564,8 @@ function _oktaNewCall()
                 $response=$false
             }
 
-            if ($response.result)
+            Write-Verbose("Collected: " + $response.result.Count + " in that page...")
+            if ($response.result.Count -gt 0)
             {
                 $result += $response.result
             } else {
