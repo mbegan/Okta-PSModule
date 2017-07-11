@@ -347,18 +347,6 @@ function _oktaMakeCall()
     )
 
     $contentType = "application/json"
-    if ($oktaVerbose)
-    {
-        foreach ($h in $headers.Keys)
-        {
-            if ($h -eq 'Authorization')
-            {
-                Write-Verbose("Req-Hdr: " + $h + " -> SSWS xXxXxXxxXxxXxXxXxxXx")
-            } else {
-                Write-Verbose("Req-Hdr: " + $h + " -> " + $headers[$h])
-            }
-        }
-    }
 
     try
     {
@@ -374,6 +362,19 @@ function _oktaMakeCall()
             $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $okta_UserAgent -Headers $headers `
                         -ContentType $contentType -Verbose:$oktaVerbose -ErrorVariable evar
         }
+
+        <# Verbose Request header readout #>
+        foreach ($h in $headers.Keys)
+        {
+            if ($h -eq 'Authorization')
+            {
+                Write-Verbose("Req-Hdr: " + $h + " -> SSWS xXxXxXxxXxxXxXxXxxXx")
+            } else {
+                Write-Verbose("Req-Hdr: " + $h + " -> " + $headers[$h])
+            }
+        }
+        Write-Verbose("Req-Hdr: " + "Content-Type" + " -> " + $contentType)
+        Write-Verbose("Req-Hdr: " + "User-Agent" + " -> " + $okta_UserAgent)
     }
     catch [System.Net.WebException]
     {
