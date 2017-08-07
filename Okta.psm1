@@ -3217,11 +3217,13 @@ function oktaListLogs()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$false)][ValidateRange(1,100)][int]$limit=100,
-        [parameter(Mandatory=$false)][ValidateRange(1,180)][int]$sinceDaysAgo=7,
+        [parameter(Mandatory=$false)][ValidateRange(1,180)][int]$sinceDaysAgo,
+        [parameter(Mandatory=$false)][ValidateRange(0,180)][int]$untilDaysAgo,
         [parameter(Mandatory=$false)][boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
         [parameter(Mandatory=$false)][string]$since,
         [parameter(Mandatory=$false)][string]$until,
-        [parameter(Mandatory=$false)][ValidateSet("ASCENDING","DECENDING")][string]$order="ASCENDING"
+        [parameter(Mandatory=$false)][string]$filter,
+        [parameter(Mandatory=$false)][ValidateSet("ASCENDING","DESCENDING")][string]$order="ASCENDING"
     )
 
     [string]$resource = "/api/v1/logs?limit=" + $limit + "&sortOrder=" + $order
@@ -3234,12 +3236,15 @@ function oktaListLogs()
         } else {
             $since = Get-Date (Get-Date $since).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
         }
-    } else {
+
+        $resource = $resource + '&since=' + $since
+    } elseif ($sinceDaysAgo) {
         $now = (Get-Date).ToUniversalTime()
         $since = Get-Date ($now.AddDays(($sinceDaysAgo*-1))) -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        $resource = $resource + '&since=' + $since
     }
 
-    $resource = $resource + '&since=' + $since
+    
 
     if ($until)
     {
@@ -3249,11 +3254,18 @@ function oktaListLogs()
         } else {
             $until = Get-Date (Get-Date $until).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
         }
+
+        $resource = $resource + '&until=' + $until
     } else {
-        $until = "now"
+        $now = (Get-Date).ToUniversalTime()
+        $until = Get-Date ($now.AddDays(($untilDaysAgo*-1))) -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        $resource = $resource + '&until=' + $until
     }
 
-    $resource = $resource + '&until=' + $until
+    if ($filter)
+    {
+        $resource = $resource + '&filter=' + $filter
+    }
 
     #$resource = [System.Web.HttpUtility]::UrlPathEncode($resource)
 
