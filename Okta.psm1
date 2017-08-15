@@ -1023,6 +1023,10 @@ function oktaCheckCreds()
             $altHeaders.Add('UserAgent', $UserAgent)
         }
     }
+    if ($ipAddress)
+    {
+        $altHeaders.Add('X-Forwarded-For', $ipAddress)
+    }
 
     try
     {
