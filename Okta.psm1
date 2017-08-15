@@ -998,7 +998,8 @@ function oktaCheckCreds()
         [Parameter(Mandatory=$true)][string]$password,
         [Parameter(Mandatory=$false)][string]$ipAddress=$null,
         [Parameter(Mandatory=$false)][string]$deviceToken=$null,
-        [Parameter(Mandatory=$false)][string]$relayState=$null
+        [Parameter(Mandatory=$false)][string]$relayState=$null,
+        [Parameter(Mandatory=$false)][string]$UserAgent
     )
     
     $psobj = @{
@@ -1013,9 +1014,19 @@ function oktaCheckCreds()
               }
     [string]$method = "Post"
     [string]$resource = "/api/v1/authn"
+
+    $altHeaders = New-Object System.Collections.Hashtable
+    if ($UserAgent)
+    {
+        if ($UserAgent -like "*")
+        {
+            $altHeaders.Add('UserAgent', $UserAgent)
+        }
+    }
+
     try
     {
-        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj -altHeaders $altHeaders
     }
     catch
     {
