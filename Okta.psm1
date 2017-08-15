@@ -3256,7 +3256,7 @@ function oktaListLogs()
         }
 
         $resource = $resource + '&until=' + $until
-    } else {
+    } elseif ($untilDaysAgo) {
         $now = (Get-Date).ToUniversalTime()
         $until = Get-Date ($now.AddDays(($untilDaysAgo*-1))) -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
         $resource = $resource + '&until=' + $until
