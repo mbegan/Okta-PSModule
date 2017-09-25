@@ -1938,6 +1938,7 @@ function oktaListGroups()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$false)][String]$query,
+        [parameter(Mandatory=$false)][String]$filter,
         [parameter(Mandatory=$false)][int]$limit=$OktaOrgs[$oOrg].pageSize,
         [parameter(Mandatory=$false)][switch]$expand
     )
@@ -1946,6 +1947,10 @@ function oktaListGroups()
     if ($query)
     {
         $resource += "&q=" + $query
+    }
+    if ($filter)
+    {
+        $resource += "&filter=" + $filter
     }
 
     if ($expand)
