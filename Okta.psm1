@@ -132,14 +132,20 @@ function oktaProcessHeaderLink()
 {
     param
     (
-        [Parameter(Mandatory=$true)][string[]]$links
+        [Parameter(Mandatory=$true)]$linkHeader
     )
-
     #may need to tweak to support windows and mac since they seem to have a different behavior here.
+    if ($linkHeader -is [System.String[]])
+    {
+        $links = $linkHeader
+    } elseif ($linkHeader -is [System.String])
+    {
+        $links = $linkHeader.Split(",")
+    }
+
     Write-Verbose("we got header links! " + $links.Count + " of them actually")
     [HashTable]$olinks = @{}
-
-    #$links = $Header.Split(",")
+    
     foreach ($link in $links)
     {
         #Yes I know it is a regex, but sometimes they work better
@@ -445,14 +451,7 @@ function _oktaMakeCall()
     {
         try
         {
-            Write-Verbose("we are trying headerin links out for processing")
-            Write-Verbose($responseHeaders['Link'].GetType().ToString())
-            foreach ($link in $responseHeaders['Link'])
-            {
-                Write-Verbose($link.GetType().ToString())
-                Write-Verbose($link.ToString())
-            }
-            $link = oktaProcessHeaderLink -links $responseHeaders['Link']
+            $link = oktaProcessHeaderLink -linkHeader $responseHeaders['Link']
         }
         catch
         {
