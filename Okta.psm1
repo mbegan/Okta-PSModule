@@ -1034,6 +1034,10 @@ function oktaCheckCreds()
             $altHeaders.Add('UserAgent', $UserAgent)
         }
     }
+    if ($ipAddress)
+    {
+        $altHeaders.Add('X-Forwarded-For', $ipAddress)
+    }
 
     try
     {
@@ -1945,6 +1949,7 @@ function oktaListGroups()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$false)][String]$query,
+        [parameter(Mandatory=$false)][String]$filter,
         [parameter(Mandatory=$false)][int]$limit=$OktaOrgs[$oOrg].pageSize,
         [parameter(Mandatory=$false)][switch]$expand
     )
@@ -1953,6 +1958,10 @@ function oktaListGroups()
     if ($query)
     {
         $resource += "&q=" + $query
+    }
+    if ($filter)
+    {
+        $resource += "&filter=" + $filter
     }
 
     if ($expand)
@@ -3278,7 +3287,7 @@ function oktaListLogs()
         }
 
         $resource = $resource + '&until=' + $until
-    } else {
+    } elseif ($untilDaysAgo) {
         $now = (Get-Date).ToUniversalTime()
         $until = Get-Date ($now.AddDays(($untilDaysAgo*-1))) -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
         $resource = $resource + '&until=' + $until
