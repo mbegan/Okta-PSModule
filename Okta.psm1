@@ -3253,7 +3253,8 @@ function oktaListLogs()
         [parameter(Mandatory=$false)][string]$since,
         [parameter(Mandatory=$false)][string]$until,
         [parameter(Mandatory=$false)][string]$filter,
-        [parameter(Mandatory=$false)][ValidateSet("ASCENDING","DESCENDING")][string]$order="ASCENDING"
+        [parameter(Mandatory=$false)][ValidateSet("ASCENDING","DESCENDING")][string]$order="ASCENDING",
+        [parameter(Mandatory=$false)][string]$next
     )
 
     [string]$resource = "/api/v1/logs?limit=" + $limit + "&sortOrder=" + $order
@@ -3274,8 +3275,6 @@ function oktaListLogs()
         $resource = $resource + '&since=' + $since
     }
 
-    
-
     if ($until)
     {
         if ($until -is [DateTime])
@@ -3295,6 +3294,17 @@ function oktaListLogs()
     if ($filter)
     {
         $resource = $resource + '&filter=' + $filter
+    }
+
+    if ($next)
+    {
+        #test next first
+        if ($next.StartsWith(($OktaOrgs.$oOrg.baseUrl + "/api/v1/logs?")))
+        {
+            $resource = $next    
+        } else {
+            _oktaThrowError -text ("This is not a valid next link: " + $next.ToString())
+        }        
     }
 
     #$resource = [System.Web.HttpUtility]::UrlPathEncode($resource)
