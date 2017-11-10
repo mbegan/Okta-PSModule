@@ -3,7 +3,7 @@
 ModuleToProcess = 'Okta.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0001'
+ModuleVersion = '2.3'
 
 # ID used to uniquely identify this module
 GUID = 'c43305bd-6cdf-4a38-9b15-79ada42d9b9e'
