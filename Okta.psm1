@@ -286,6 +286,7 @@ function _oktaRateLimitCheck()
 
     $remain = [int][string]$rateLimt.Remaining
     $limit = [int][string]$rateLimt.Limit
+    $reset = [long][string]$rateLimt.Reset
 
     $used = ($remain / $limit)
     $usedpct = $used.ToString("P")
@@ -299,7 +300,7 @@ function _oktaRateLimitCheck()
 
     if ($used -lt $warn)
     {
-        $reset = _oktaRateLimitTimeRemaining -seconds $rateLimt.Reset
+        $reset = _oktaRateLimitTimeRemaining -seconds $reset
         $limit_note = "You have $remain out of $limit aka: $used in the next $reset seconds"
         Write-Warning($limit_note)
 
@@ -331,7 +332,7 @@ function _oktaRateLimitCheck()
     }
 }
 
-$okta_UserAgent = "Okta-PSModule/2.2"
+$okta_UserAgent = "Okta-PSModule/2.3"
 $resHeaders = @(
     "X-Okta-Request-Id",
     "X-Rate-Limit-Limit",
@@ -463,7 +464,9 @@ function _oktaMakeCall()
             $next = $link.next
         } else {
             Write-Verbose("we had a link header, it didn't contain a next link though")
+            $next = $false
         }
+        Remove-Variable -Name link -Force
     } else {
         $next = $false
     }
@@ -508,7 +511,8 @@ function _oktaNewCall()
         [parameter(Mandatory=$true)][String]$resource,
         [parameter(Mandatory=$false)][Object]$body = @{},
         [parameter(Mandatory=$false)][boolean]$enablePagination = $OktaOrgs[$oOrg].enablePagination,
-        [parameter(Mandatory=$false)][Object]$altHeaders
+        [parameter(Mandatory=$false)][Object]$altHeaders,
+        [parameter(Mandatory=$false)][ValidateRange(1,1000)][int]$limit
     )
 
     $headers = New-Object System.Collections.Hashtable
@@ -540,54 +544,82 @@ function _oktaNewCall()
         $_c = $headers.Add($alt,$altHeaders[$alt])
     }
 
-    try
-    {
-        $response = _oktaMakeCall -method $method -uri $uri -headers $headers -body $body
-    }
-    catch
-    {
-        Write-Warning($_.Exception.Message)
-        Write-Warning("Encountered error, returning limited set")
-        $response=$false
-    }
-    
     <#
         .ratelimit = ratelimit headers or false
         .next = a link or false
         .result = psobject
-
     #>
-    if ($response.result)
+    $getPages = $true
+    [object]$results = @()
+    $Global:nextNext = $false
+    $next = $false
+    
+    while ($getPages)
     {
-        $result = $response.result
-        $lastUri = $response.next
-        while ($response.next)
+        try
         {
-            Write-Verbose("Collected: " + $response.result.Count + " we've seen: " + $result.count + " so far, Going for the next page")
-            try
-            {
-                $response = _oktaMakeCall -method $method -uri $response.next -headers $headers -body $body
-            }
-            catch
-            {
-                Write-Warning($_.Exception.Message)
-                Write-Warning("Encountered error, returning limited set")
-                $response=$false
-            }
-
-            Write-Verbose("Collected: " + $response.result.Count + " in that page...")
-            if ($response.result.Count -gt 0)
-            {
-                $result += $response.result
-            } else {
-                Write-Verbose("last result: " + $lastUri)
-            }
-            $lastUri = $response.next
+            $response = _oktaMakeCall -method $method -uri $uri -headers $headers -body $body
         }
-        return $result
-    } else {
-        return @()
-    }
+        catch
+        {
+            Write-Warning($_.Exception.Message)
+            Write-Warning("Encountered error, returning limited or empty set")
+            $response=$false
+        }
+        
+        if ($response)
+        {
+            $results += $response.result
+            $next = $response.next
+            $i_count = $response.result.Count
+        } else {
+            $i_count = 0
+            $next = $false
+        }
+        Remove-Variable -Name response -Force
+
+        $r_count = $results.Count
+        Write-Verbose("This Page returned: " + $i_count + ", we've seen: " + $r_count + " results so far")
+
+        if ($i_count -eq 0)
+        {
+            Write-Verbose("0 results returned, i predict an empty page coming up, lets skip it")
+            #there nothing was returned, if there is a next link it is empty, if there isn't a nextlink assume the last link is the next link
+            $getPages = $false
+            if ($next) { $Global:nextNext = $next } else { $Global:nextNext = $uri }
+        }
+
+        if ($limit)
+        {
+            Write-Verbose("We have a limit: " + $limit + " so we'll predict and avoid empty pages")
+            if ($i_count -lt $limit) #this would include 0
+            {
+                Write-Verbose("This Page returned: " + $i_count + ", we've seen: " + $r_count + " results so far")
+                $getPages = $false
+                if ($next) { $Global:nextNext = $next } else { $Global:nextNext = $uri }
+            }
+        }
+        if (! $enablePagination)
+        {
+            $getPages = $false
+        }
+
+        if ($next)
+        {
+            Write-Verbose("We see a valid next link of: " + $next)
+            $getPages = $true
+        } else {
+            Write-Verbose("We see no or an invalid next link of: " + $next.ToString())
+            $getPages = $false
+        }
+
+        if ($getPages)
+        {
+            $uri = $next
+        }
+    } #End While
+    
+    return $results
 }
 
 function oktaNewUser()
@@ -3312,7 +3344,7 @@ function oktaListLogs()
     [string]$method = "Get"
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination -limit $limit
     }
     catch
     {
@@ -3339,8 +3371,6 @@ function oktaListProviders()
 
     [string]$method = "Get"
     [string]$resource = '/api/v1/idps'
-
-
 
     if ($pid)
     {
