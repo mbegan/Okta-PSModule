@@ -483,13 +483,21 @@ function _oktaMakeCall()
 
     if ($request2)
     {
-        try
+        if ($request2.Content)
         {
-            $result = ConvertFrom-Json -InputObject $request2.Content -Verbose:$oktaVerbose
-        }
-        catch
-        {
-            Write-Warning($_.Exception.Message)
+            Write-Verbose("There was content retured, convert from json string")
+            try
+            {
+                $result = ConvertFrom-Json -InputObject $request2.Content -Verbose:$oktaVerbose
+            }
+            catch
+            {
+                Write-Warning($_.Exception.Message)
+                $result = $()
+                $next = $false
+            }
+        } else {
+            Write-Verbose("There was content retured, don't try to convert it")
             $result = $()
             $next = $false
         }
