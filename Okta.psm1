@@ -1,4 +1,4 @@
-﻿$ExecutionContext.SessionState.Module.OnRemove = {
+$ExecutionContext.SessionState.Module.OnRemove = {
     Remove-Module Okta_org
 }
 
@@ -280,7 +280,7 @@ function _oktaRateLimitCheck()
 {
     #this needs some work...
     [double]$warn = .50
-    [double]$thottle = .20
+    [double]$throttle = .20
     #how many other calls per second should we assume are there for backoff calculations?
     [int]$cps = 16
 
@@ -304,7 +304,7 @@ function _oktaRateLimitCheck()
         $limit_note = "You have $remain out of $limit aka: $used in the next $reset seconds"
         Write-Warning($limit_note)
 
-        if ($used -lt $thottle)
+        if ($used -lt $throttle)
         {
             if ($reset -lt 10) { $reset = 10 }
             # how aggressive should we sleep?  same logic for now.
@@ -407,13 +407,13 @@ function _oktaMakeCall()
             }
             "BadRequest"
             {
-                Write-Warning("You're request was bad!")
+                Write-Warning("Your request was bad!")
                 #Write-Warning($_.ErrorDetails.Message)
                 throw($evar[0].ErrorRecord.Exception.Message)
             }
             "NotFound"
             {
-                Write-Warning("You're item wasn't found!")
+                Write-Warning("Your item wasn't found!")
                 throw($evar[0].ErrorRecord.Exception.Message)
             }
             default
