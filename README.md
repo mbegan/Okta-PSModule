@@ -7,7 +7,31 @@ This is something I have been building and adding to for a few years. I still ne
 --------
 
 # Getting Started
-## Installation:
+
+## PreReq
+
+1. This Module requires Powershell version 4 or greater (see output from `$PSVersionTable`)
+
+```powershell
+PS > $PSVersionTable
+
+Name                           Value
+----                           -----
+PSVersion                      6.0.0-rc
+PSEdition                      Core
+GitCommitId                    v6.0.0-rc
+OS                             Darwin 17.4.0 Darwin Kernel Version 17.4.0: Sun Dec 17 09:19:54 PST 2017; root:xnu-4570.41.2~1/RELEASE_X86_64
+Platform                       Unix
+PSCompatibleVersions           {1.0, 2.0, 3.0, 4.0...}
+PSRemotingProtocolVersion      2.3
+SerializationVersion           1.1.0.1
+WSManStackVersion              3.0
+```
+
+2. This Module will run on both Windows and Mac/*nix version of powershell
+
+## Installation
+
 1. Download the module (git clone or download the zip)
 2. Place the module in your PSModulePath hint [Read more about PSModulePath Here](https://msdn.microsoft.com/en-us/library/dd878324%28v=vs.85%29.aspx)
 
