@@ -614,14 +614,19 @@ function _oktaNewCall()
 
         if ($next)
         {
-            Write-Verbose("We see a valid next link of: " + $next)
-            $getPages = $true
+            $morePages = $true
+            if ($getPages)
+            {
+                Write-Verbose("We see a valid next link of: " + $next)
+            } else {
+                Write-Verbose("We are not going to fetch the next link of: " + $next)
+            }
         } else {
             Write-Verbose("We see no or an invalid next link of: " + $next.ToString())
-            $getPages = $false
+            $morePages = $false
         }
 
-        if ($getPages)
+        if (($morePages) -and ($getPages))
         {
             $uri = $next
         }
@@ -3225,7 +3230,8 @@ function oktaListEvents()
         [parameter(Mandatory=$false)][ValidateRange(1,180)][int]$sinceDaysAgo=7,
         [parameter(Mandatory=$false)]$since,
         [parameter(Mandatory=$false)]$until,
-        [parameter(Mandatory=$false)]$after
+        [parameter(Mandatory=$false)]$after,
+        [parameter(Mandatory=$false)]$filter
     )
 
     if ($since)
@@ -3241,7 +3247,12 @@ function oktaListEvents()
         $since = Get-Date ($now.AddDays(($sinceDaysAgo*-1))) -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
     }
 
-    $filter = 'published gt "' + $since + '" and '
+    if ($filter)
+    {
+        $filter = $filter + ' and published gt "' + $since + '" and '
+    } else {
+        $filter = 'published gt "' + $since + '" and '
+    }
 
     if ($until)
     {
@@ -3268,7 +3279,7 @@ function oktaListEvents()
 
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination -limit $limit
     }
     catch
     {
