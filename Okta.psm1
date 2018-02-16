@@ -157,6 +157,42 @@ function oktaProcessHeaderLink()
     return $olinks
 }
 
+function oktaMakeUserAgent()
+{
+    if ($Global:defaultUserAgent)
+    {
+        return $Global:defaultUserAgent
+    }
+
+    if ($PSVersionTable.Contains("OS"))
+    {
+        $psOs = $PSVersionTable["OS"].ToString()
+    } else {
+        $psOs = "UnknownOS"
+    }
+
+    if ($PSVersionTable.Contains("Platform"))
+    {
+        $psPlatform = $PSVersionTable["Platform"].ToString()
+    } else {
+        $psPlatform = "UnknownPlatform"
+    }
+
+    if ($PSVersionTable.Contains("PSVersion"))
+    {
+        $psVer = $PSVersionTable["PSVersion"].ToString()
+    } else {
+        $psVer = "UnknownPsVer"
+    }
+
+    $module = Get-Module -Name Okta
+    $modVer = $module.Version.ToString()
+
+    $userAgent = "Okta-PSModule/" + $modVer + " (" + $psVer + ")" + " (" + $psPlatform + ")"+ " (" + $psOs + ")"
+    Write-Verbose("Just Made this UserAgent: " + $userAgent)
+    $Global:defaultUserAgent = $userAgent
+    return $userAgent
+}
 function _testOrg()
 {
     param
@@ -332,7 +368,6 @@ function _oktaRateLimitCheck()
     }
 }
 
-$okta_UserAgent = "Okta-PSModule/2.3"
 $resHeaders = @(
     "X-Okta-Request-Id",
     "X-Rate-Limit-Limit",
@@ -351,10 +386,16 @@ function _oktaMakeCall()
         [parameter(Mandatory=$true)][ValidateSet("Get", "Head", "Post", "Put", "Delete")][String]$method,
         [parameter(Mandatory=$true)][String]$uri,
         [parameter(Mandatory=$true)][hashtable]$headers,
-        [parameter(Mandatory=$false)][Object]$body = @{}
+        [parameter(Mandatory=$false)][Object]$body = @{},
+        [parameter(Mandatory=$false)][String]$userAgent
     )
 
     $contentType = "application/json"
+
+    if (!$userAgent)
+    {
+        $userAgent = oktaMakeUserAgent
+    }
 
     try
     {
@@ -364,10 +405,10 @@ function _oktaMakeCall()
             $postData = ConvertTo-Json $body -Depth 10
             Write-Verbose($postData)
 
-            $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $okta_UserAgent -Headers $headers `
+            $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
                         -ContentType $contentType -Verbose:$oktaVerbose -Body $postData -ErrorVariable evar       
         } else {
-            $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $okta_UserAgent -Headers $headers `
+            $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
                         -ContentType $contentType -Verbose:$oktaVerbose -ErrorVariable evar
         }
 
@@ -382,7 +423,7 @@ function _oktaMakeCall()
             }
         }
         Write-Verbose("Req-Hdr: " + "Content-Type" + " -> " + $contentType)
-        Write-Verbose("Req-Hdr: " + "User-Agent" + " -> " + $okta_UserAgent)
+        Write-Verbose("Req-Hdr: " + "User-Agent" + " -> " + $userAgent)
     }
     catch [System.Net.WebException]
     {
@@ -506,7 +547,7 @@ function _oktaMakeCall()
     }
 
     if ($rateLimt){ _oktaRateLimitCheck }
-
+    
     return @{ result = $result ; next = $next ; ratelimit = $rateLimt }
 }
 
@@ -541,9 +582,10 @@ function _oktaNewCall()
     } else {
         [string]$uri = ($OktaOrgs[$oOrg].baseUrl).ToString() + $resource
     }
+    #if our altHeaders contains an alternative UserAgent string set it
     if ( ($altHeaders) -and ($altHeaders['UserAgent']) )
     {
-        $okta_UserAgent = $altHeaders['UserAgent']
+        $userAgent = $altHeaders['UserAgent']
         $altHeaders.Remove('UserAgent')
     }
 
@@ -566,7 +608,7 @@ function _oktaNewCall()
     {
         try
         {
-            $response = _oktaMakeCall -method $method -uri $uri -headers $headers -body $body
+            $response = _oktaMakeCall -method $method -uri $uri -headers $headers -body $body -userAgent $userAgent
         }
         catch
         {
@@ -579,11 +621,18 @@ function _oktaNewCall()
         {
             $results += $response.result
             $next = $response.next
-            $i_count = $response.result.Count
+            if ($response.result -is [array])
+            {
+                $i_count = $response.result.Count
+            } else {
+                $i_count = 1
+            }
+            
         } else {
             $i_count = 0
             $next = $false
         }
+
         Remove-Variable -Name response -Force
 
         $r_count = $results.Count
@@ -602,7 +651,7 @@ function _oktaNewCall()
             Write-Verbose("We have a limit: " + $limit + " so we'll predict and avoid empty pages")
             if ($i_count -lt $limit) #this would include 0
             {
-                Write-Verbose("This Page returned: " + $i_count + ", we've seen: " + $r_count + " results so far")
+                Write-Verbose("The number returned: " + $i_count + ", is less than the limit: " + $limit)
                 $getPages = $false
                 if ($next) { $Global:nextNext = $next } else { $Global:nextNext = $uri }
             }
@@ -614,24 +663,20 @@ function _oktaNewCall()
 
         if ($next)
         {
-            $morePages = $true
             if ($getPages)
             {
                 Write-Verbose("We see a valid next link of: " + $next)
+                $uri = $next
             } else {
                 Write-Verbose("We are not going to fetch the next link of: " + $next)
             }
         } else {
             Write-Verbose("We see no or an invalid next link of: " + $next.ToString())
-            $morePages = $false
+            $getPages = $false
         }
 
-        if (($morePages) -and ($getPages))
-        {
-            $uri = $next
-        }
     } #End While
-    
+
     return $results
 }
 
@@ -701,7 +746,7 @@ function oktaChangeProfilebyID()
     [string]$resource = "/api/v1/users/" + $uid
     try
     {
-        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj -enablePagination:$true
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
     }
     catch
     {
@@ -2017,7 +2062,7 @@ function oktaListGroups()
     
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -limit $limit
     }
     catch
     {
@@ -3231,8 +3276,20 @@ function oktaListEvents()
         [parameter(Mandatory=$false)]$since,
         [parameter(Mandatory=$false)]$until,
         [parameter(Mandatory=$false)]$after,
-        [parameter(Mandatory=$false)]$filter
+        [parameter(Mandatory=$false)]$filter,
+        [parameter(Mandatory=$false)]$startDate,
+        [boolean]$publishedFilter=$true
     )
+
+    if ($startDate)
+    {
+        if ($startDate -is [DateTime])
+        {
+            $startDate = Get-Date $startDate.ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        } else {
+            $startDate = Get-Date (Get-Date $startDate).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+        }
+    }
 
     if ($since)
     {
@@ -3247,14 +3304,14 @@ function oktaListEvents()
         $since = Get-Date ($now.AddDays(($sinceDaysAgo*-1))) -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
     }
 
-    if ($filter)
+    if ($filter -and $publishedFilter)
     {
-        $filter = $filter + ' and published gt "' + $since + '" and '
-    } else {
-        $filter = 'published gt "' + $since + '" and '
+        $filter = $filter + ' and published gt "' + $since + '"'
+    } elseif ($publishedFilter) {
+        $filter = 'published gt "' + $since + '"'
     }
 
-    if ($until)
+    if ($until -and $publishedFilter)
     {
         if ($until -is [DateTime])
         {
@@ -3262,15 +3319,33 @@ function oktaListEvents()
         } else {
             $until = Get-Date (Get-Date $until).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
         }
-    } else {
-        $until = Get-Date (Get-Date).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
-    }
+    }# elseif ($publishedFilter) {
+    #    $until = Get-Date (Get-Date).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
+    #}
 
-    $filter = $filter + 'published lt "' + $until + '"'
+    if ($until -and $publishedFilter)
+    {
+        $filter = $filter + ' and published lt "' + $until + '"'
+    }
 
     #$filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
 
-    [string]$resource = "/api/v1/events?filter=" + $filter + "&limit=" + $limit
+    if ($filter -and $publishedFilter)
+    {
+        [string]$resource = "/api/v1/events?filter=" + $filter + "&limit=" + $limit
+    } elseif ($filter -and $startDate)
+    {
+        [string]$resource = "/api/v1/events?startDate=" + $startDate + "&filter=" + $filter + "&limit=" + $limit
+    } elseif ($startDate)
+    {
+        [string]$resource = "/api/v1/events?startDate" + $startDate + "&limit=" + $limit    
+    } elseif ($filter)
+    {
+        [string]$resource = "/api/v1/events?filter=" + $filter + "&limit=" + $limit
+    } else {
+        [string]$resource = "/api/v1/events?limit=" + $limit
+    }
+
     if ($after)
     {
         $resource += "&after=$after"
@@ -3437,7 +3512,6 @@ function oktaNewProviderPolicyObject()
     )
 
     $groups = @{ action = $provGroupAction; sourceAttributeName = $groupSourceAttrName; filter = $groupsFilter; assignments = $groupsAssign }
-    $callout = $null
     $provisioning = @{ action = $provUserAction; profileMaster = $profileMaster; groups = $groups}
 
     if ($accountLinkFilter.Count -ge 1)
