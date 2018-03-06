@@ -2107,7 +2107,7 @@ function oktaAddUsertoRoles()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
-        [Parameter(Mandatory=$true)][ValidateSet("SUPER_ADMIN","ORG_ADMIN","APP_ADMIN","USER_ADMIN","READ_ONLY_ADMIN")][String]$roleType
+        [Parameter(Mandatory=$true)][ValidateSet("SUPER_ADMIN","ORG_ADMIN","API_ACCESS_MANAGEMENT_ADMIN","APP_ADMIN","USER_ADMIN","MOBILE_ADMIN","READ_ONLY_ADMIN", "HELP_DESK_ADMIN")][String]$roleType
     )
        
     [string]$resource = "/api/v1/users/" + $uid + "/roles"
@@ -2135,7 +2135,7 @@ function oktaDelUserFromRoles()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$rid
+        [parameter(Mandatory=$true)][ValidateLength(16,20)][String]$rid
     )
        
     [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid
