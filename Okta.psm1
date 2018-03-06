@@ -425,19 +425,40 @@ function _oktaMakeCall()
         Write-Verbose("Req-Hdr: " + "Content-Type" + " -> " + $contentType)
         Write-Verbose("Req-Hdr: " + "User-Agent" + " -> " + $userAgent)
     }
-    catch [System.Net.WebException]
+    catch [System.Net.WebException], [Microsoft.PowerShell.Commands.HttpResponseException]
     {
         
-        $code = $evar[0].ErrorRecord.Exception.Response.StatusCode
+        $code = $_.Exception.Response.StatusCode
         
-        if ($evar[0].InnerException.Response.Headers)
+        if ( $_.Exception.Response.Headers.Contains('X-Okta-Requst-Id') )
         {
-            $responseHeaders = $evar[0].InnerException.Response.Headers
-            Write-Warning("Okta Request ID: " + $responseHeaders['X-Okta-Request-Id'])
+            $reqId = $_.Exception.Response.Headers.GetValues('X-Okta-Requst-Id')
+            Write-Warning("Okta Request ID: " + $reqId[0])
         }
-        if ($evar[0].ErrorRecord.ErrorDetails.Message)
+        
+        if ($_.ErrorDetails.Message)
         {
-            Write-Warning("Okta Said: " + $evar[0].ErrorRecord.ErrorDetails.Message )
+            try
+            {
+                $oktaException = ConvertFrom-Json -InputObject $_.ErrorDetails.Message
+            }
+            catch {
+                $oktaException = $false
+            }
+            if ($oktaException)
+            {
+                $oktaMessage = "`nerrorCode: " + $oktaException.errorCode
+                $oktaMessage += "; errorSummary: " + $oktaException.errorSummary
+                $oktaMessage += "; errorId: " + $oktaException.errorId
+                $oktaMessage += "`n`tcauses:`n"
+                foreach ($cause in $oktaException.errorCauses)
+                {
+                    $oktaMessage += "`t`t" + $cause.errorSummary + "`n"
+                }
+                Write-Error($oktaMessage)
+            } else {
+                Write-Error($_.ErrorDetails.Message.ToString())
+            }
         }
 
         switch ($code)
@@ -2632,16 +2653,16 @@ function oktaActivateFactorByUser()
     return $request
 }
 
-function oktaAddFactorByUser()
+function oktaEnrollFactorByUser()
 {
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
         [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$username,
-        [parameter(Mandatory=$false)][ValidateSet('sms','token:hardware')][String]$factorType,
-        [parameter(Mandatory=$false)][ValidateSet('OKTA','DUO')][String]$provider,
-        [parameter(Mandatory=$false)][String]$phoneNumber,
+        [parameter(Mandatory=$true)][ValidateSet('push','sms','call','token','token:software:totp','token:hardware','question','web','email')][String]$factorType,
+        [parameter(Mandatory=$true)][ValidateSet('OKTA','RSA','SYMANTEC','GOOGLE','DUO','YUBICO')][String]$provider,
+        [parameter(Mandatory=$true)]$factorProfile,
         [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$fid,
         [parameter(Mandatory=$false)][switch]$update
     )
@@ -2656,12 +2677,10 @@ function oktaAddFactorByUser()
         }
     }
 
-    $profile = @{phoneNumber = $phoneNumber}
-
     $body = @{
              factorType = $factorType
              provider = $provider
-             profile = $profile
+             profile = $factorProfile
              }
 
     [string]$resource = '/api/v1/users/' + $uid + '/factors'
@@ -2671,8 +2690,42 @@ function oktaAddFactorByUser()
     {
         #[string]$method = "Put"
         $resource = $resource + '/' + $fid
-        $body = @{ profile = $profile }
+        $body = @{ profile = $factorProfile }
     }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $body
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaActivateFactorByUser()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][ValidateLength(1,255)][String]$fid,
+        [parameter(Mandatory=$false)][ValidateLength(5,20)][String]$passCode
+    )
+
+    if ($passCode)
+    {
+        $body = @{ passCode = $passCode }
+    } else {
+        $body = $null
+    }
+    [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid + '/lifecycle/activate'
+    [string]$method = "Post"
 
     try
     {
@@ -2695,7 +2748,8 @@ function oktaGetFactorsbyUser()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$username
+        [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$username,
+        [parameter(Mandatory=$false)][switch]$eligible
     )
     if (!$uid)
     {
@@ -2708,6 +2762,10 @@ function oktaGetFactorsbyUser()
     }
     
     [string]$resource = '/api/v1/users/' + $uid + '/factors'
+    if ($eligible)
+    {
+        $resource = $resource + '/catalog'
+    }
     [string]$method = "Get"
     try
     {
@@ -3372,18 +3430,23 @@ function oktaListLogs()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$false)][ValidateRange(1,100)][int]$limit=100,
+        [parameter(Mandatory=$false)][ValidateRange(1,1000)][int]$limit=100,
         [parameter(Mandatory=$false)][ValidateRange(1,180)][int]$sinceDaysAgo,
         [parameter(Mandatory=$false)][ValidateRange(0,180)][int]$untilDaysAgo,
         [parameter(Mandatory=$false)][boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
         [parameter(Mandatory=$false)][string]$since,
         [parameter(Mandatory=$false)][string]$until,
         [parameter(Mandatory=$false)][string]$filter,
-        [parameter(Mandatory=$false)][ValidateSet("ASCENDING","DESCENDING")][string]$order="ASCENDING",
+        [parameter(Mandatory=$false)][ValidateSet("ASCENDING","DESCENDING")][string]$order,
         [parameter(Mandatory=$false)][string]$next
     )
 
-    [string]$resource = "/api/v1/logs?limit=" + $limit + "&sortOrder=" + $order
+    [string]$resource = "/api/v1/logs?limit=" + $limit
+
+    if ($order)
+    {
+        $resource +=  + "&sortOrder=" + $order
+    }
 
     if ($since)
     {
