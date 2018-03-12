@@ -2661,10 +2661,12 @@ function oktaEnrollFactorByUser()
         [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
         [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$username,
         [parameter(Mandatory=$true)][ValidateSet('push','sms','call','token','token:software:totp','token:hardware','question','web','email')][String]$factorType,
-        [parameter(Mandatory=$true)][ValidateSet('OKTA','RSA','SYMANTEC','GOOGLE','DUO','YUBICO')][String]$provider,
+        [parameter(Mandatory=$true)][ValidateSet('OKTA','RSA','SYMANTEC','GOOGLE','DUO','YUBICO','DEL_OATH')][String]$provider,
         [parameter(Mandatory=$true)]$factorProfile,
+        [parameter(Mandatory=$false)]$verifyData,
         [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$fid,
-        [parameter(Mandatory=$false)][switch]$update
+        [parameter(Mandatory=$false)][switch]$update,
+        [parameter(Mandatory=$false)][switch]$activate
     )
 
     if (!$uid)
@@ -2682,6 +2684,10 @@ function oktaEnrollFactorByUser()
              provider = $provider
              profile = $factorProfile
              }
+    if ($verifyData)
+    {
+        $body.Add("verify", $verifyData)
+    }
 
     [string]$resource = '/api/v1/users/' + $uid + '/factors'
     [string]$method = "Post"
@@ -2691,8 +2697,11 @@ function oktaEnrollFactorByUser()
         #[string]$method = "Put"
         $resource = $resource + '/' + $fid
         $body = @{ profile = $factorProfile }
+    } elseif ($activate)
+    {
+        $resource = $resource + '?activate=true'
     }
-
+    
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $body
