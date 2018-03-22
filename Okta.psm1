@@ -193,6 +193,28 @@ function oktaMakeUserAgent()
     $Global:defaultUserAgent = $userAgent
     return $userAgent
 }
+
+function oktaBuildURIQuery()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][UriBuilder]$uri,
+        [parameter(Mandatory=$true)][Hashtable]$addParams
+    )
+
+    foreach ($key in $addParams.Keys)
+    {
+        $addParam = $key + "=" + $addParams[$key]
+        if ($uri.Query.Length -eq 0)
+        {
+            $uri.Query = $addParam
+        } else {
+            $uri.Query = $uri.Query.Substring(1) + "&" + $addParam
+        }
+    }
+    return $uri
+}
+
 function _testOrg()
 {
     param
@@ -3439,7 +3461,7 @@ function oktaListLogs()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$false)][ValidateRange(1,1000)][int]$limit=100,
+        [parameter(Mandatory=$false)][ValidateRange(1,1000)][int]$limit,
         [parameter(Mandatory=$false)][ValidateRange(1,180)][int]$sinceDaysAgo,
         [parameter(Mandatory=$false)][ValidateRange(0,180)][int]$untilDaysAgo,
         [parameter(Mandatory=$false)][boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
@@ -3450,11 +3472,18 @@ function oktaListLogs()
         [parameter(Mandatory=$false)][string]$next
     )
 
-    [string]$resource = "/api/v1/logs?limit=" + $limit
+    [string]$resource = "/api/v1/logs"
+    $params = New-Object System.Collections.Hashtable
+    $uri = [System.UriBuilder]::new("https", "hostplaceholder", 443, $resource)
+    
+    if ($limit)
+    {
+        $params.Add("limit",$limit)
+    }
 
     if ($order)
     {
-        $resource +=  + "&sortOrder=" + $order
+        $params.Add("sortOrder",$order)
     }
 
     if ($since)
@@ -3465,12 +3494,11 @@ function oktaListLogs()
         } else {
             $since = Get-Date (Get-Date $since).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
         }
-
-        $resource = $resource + '&since=' + $since
+        $params.Add("since",$since)
     } elseif ($sinceDaysAgo) {
         $now = (Get-Date).ToUniversalTime()
         $since = Get-Date ($now.AddDays(($sinceDaysAgo*-1))) -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
-        $resource = $resource + '&since=' + $since
+        $params.Add("since",$since)
     }
 
     if ($until)
@@ -3481,36 +3509,44 @@ function oktaListLogs()
         } else {
             $until = Get-Date (Get-Date $until).ToUniversalTime() -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
         }
-
-        $resource = $resource + '&until=' + $until
+        $params.Add("until",$until)
     } elseif ($untilDaysAgo) {
         $now = (Get-Date).ToUniversalTime()
         $until = Get-Date ($now.AddDays(($untilDaysAgo*-1))) -Format "yyyy-MM-ddTHH:mm:ss.fffZ"
-        $resource = $resource + '&until=' + $until
+        $params.Add("until",$until)
     }
 
     if ($filter)
     {
-        $resource = $resource + '&filter=' + $filter
+        $params.Add("filter",$filter)
     }
 
     if ($next)
     {
-        #test next first
+        #test next value first
         if ($next.StartsWith(($OktaOrgs.$oOrg.baseUrl + "/api/v1/logs?")))
         {
             $resource = $next    
         } else {
             _oktaThrowError -text ("This is not a valid next link: " + $next.ToString())
         }        
+    } else {
+        $uri = oktaBuildURIQuery -uri $uri -addParams $params
+        $resource = $uri.Path + $uri.Query
+        Write-Verbose("Before: " + $resource)
+        $resource = [System.Web.HttpUtility]::UrlPathEncode($resource)
+        Write-Verbose(" After: " + $resource)        
     }
-
-    #$resource = [System.Web.HttpUtility]::UrlPathEncode($resource)
 
     [string]$method = "Get"
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination -limit $limit
+        if ($limit)
+        {
+            $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination -limit $limit
+        } else {
+            $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
+        }
     }
     catch
     {
