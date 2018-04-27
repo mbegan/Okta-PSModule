@@ -1,4 +1,5 @@
 # Okta-PSModule Documentation
+
 ======================
 
 This is not to be confused with or in competition with the official Okta [Powershell/CSharp module](https://github.com/okta/oktasdk-csharp/tree/master/Okta.Core.Automation).
@@ -6,9 +7,9 @@ This is something I have been building and adding to for a few years. I still ne
 
 --------
 
-# Getting Started
+## Getting Started
 
-## PreReq
+### PreReq
 
 1. This Module requires Powershell version 4 or greater (see output from `$PSVersionTable`)
 
@@ -30,7 +31,7 @@ WSManStackVersion              3.0
 
 2. This Module will run on both Windows and Mac/*nix version of powershell
 
-## Installation
+### Installation
 
 1. Download the module (git clone or download the zip)
 2. Place the module in your PSModulePath hint [Read more about PSModulePath Here](https://msdn.microsoft.com/en-us/library/dd878324%28v=vs.85%29.aspx)
@@ -71,7 +72,8 @@ Write-Host $env:PSModulePath
                         }
 ```
 
-## Example Installation:
+### Example Installation:
+
 1. Open a command prompt
 
 ```
@@ -85,7 +87,8 @@ notepad Okta_org.ps1
 3. Modify file as required \(Update yourdomain, API Token you generated for that org etc\)
 4. Save the file
   
-## Basic Usage:
+### Basic Usage:
+
 1. Launch powershell \(or even better, the powershell ise\)
 2. Import the Okta Module
 3. Use
@@ -135,7 +138,29 @@ I'll add more details on usage later, if you have a specific use case ask away i
 
 Also browse on over to [Okta community](https://support.okta.com/help/community) for more discussion
 
-### Available Commands
+## A note about TSL 1.2
+
+Momentum is shifting to clients and servers supporting TLS 1.2.  This plugin is capable of connecting to Okta with TLS 1.2 but doesn't do anything to direct the protocol used rather it relies on the SystemDefault configured for [schannel on the host](https://msdn.microsoft.com/en-us/library/system.net.securityprotocoltype(v=vs.110).aspx)
+
+If you want to force TLS 1.2 make sure your system can actually [support it](https://blogs.perficient.com/microsoft/2016/04/tsl-1-2-and-net-support/).
+
+### force TLS 1.2
+
+If you decide you want to force this module to use TLS1.2 add this code block to your Okta_org.ps1 or your $PROFILE script.
+
+```powershell
+try
+{
+   [Net.ServicePointManager]::SecurityProtocol  = [Net.SecurityProtocolType]::Tls12
+}
+catch
+{
+   Write-Warning $_.Exception.Message
+}
+```
+
+#### Available Commands
+
 - oktaActivateUserbyId
 - oktaAddUseridtoGroupid
 - oktaAddUsertoRoles
