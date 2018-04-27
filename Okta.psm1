@@ -1860,6 +1860,35 @@ function oktaUpdateApp()
     return $request
 }
 
+function oktaUpdateAppOverrides()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
+        [parameter(Mandatory=$false)][String]$ssoAcsUrlOverride,
+        [parameter(Mandatory=$false)][String]$audienceOverride,
+        [parameter(Mandatory=$false)][String]$recipientOverride,
+        [parameter(Mandatory=$false)][String]$destinationOverride
+    )
+
+    $app = oktaGetAppbyId -oOrg $oOrg -aid $aid
+    
+    [string[]]$overrides = "ssoAcsUrlOverride","audienceOverride","recipientOverride","destinationOverride"
+
+    foreach ($override in $overrides)
+    {
+        if (Get-Variable -Name $override -ErrorAction SilentlyContinue) 
+        {
+            $app.settings.signOn.$override = (Get-Variable -Name $override -ValueOnly)
+        }
+    }
+    
+    $new = @{signOnMode=$app.signOnMode; label=$app.label; name=$app.name; settings=$app.settings}
+    
+    oktaUpdateApp -oOrg $org -aid $aid -app $new
+}
+
 function oktaGetAppbyId()
 {
     param
