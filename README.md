@@ -138,7 +138,7 @@ I'll add more details on usage later, if you have a specific use case ask away i
 
 Also browse on over to [Okta community](https://support.okta.com/help/community) for more discussion
 
-## A note about TSL 1.2
+## A note about TLS 1.2
 
 Momentum is shifting to clients and servers supporting TLS 1.2.  This plugin is capable of connecting to Okta with TLS 1.2 but doesn't do anything to direct the protocol used rather it relies on the SystemDefault configured for [schannel on the host](https://msdn.microsoft.com/en-us/library/system.net.securityprotocoltype(v=vs.110).aspx)
 
