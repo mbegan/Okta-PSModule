@@ -215,6 +215,34 @@ function oktaBuildURIQuery()
     return $uri
 }
 
+function oktaBuildURI()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][string]$resource,
+        [parameter(Mandatory=$true)][Hashtable]$params
+    )
+    Write-Verbose("Start: " + $resource)
+    $uri = [System.UriBuilder]::new("https", "hostplaceholder", 443, $resource)
+
+    foreach ($key in $params.Keys)
+    {
+        $param = $key + "=" + $params[$key]
+        if ($uri.Query.Length -eq 0)
+        {
+            $uri.Query = $param
+        } else {
+            $uri.Query = $uri.Query.Substring(1) + "&" + $param
+        }
+    }
+    $newResource = ($uri.Path + $uri.Query)
+    Write-Verbose("Before: " + $newResource)
+    $newResource = [System.Web.HttpUtility]::UrlPathEncode($newResource)
+    Write-Verbose(" After: " + $newResource)
+    
+    return $newResource
+}
+
 function _testOrg()
 {
     param
@@ -755,6 +783,53 @@ function oktaNewUser()
     }
     [string]$method = "Post"
     [string]$resource = "/api/v1/users?activate=True"
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
+    return $request
+}
+
+function oktaNewUser2()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][string]$login,
+        [parameter(Mandatory=$false)][string]$email,
+        [parameter(Mandatory=$true)][string]$firstName,
+        [parameter(Mandatory=$true)][string]$lastName,
+        [parameter(Mandatory=$true)][string]$mobilePhone,
+        [parameter(Mandatory=$false)][object]$additional=@{}
+    )
+    if (!$email){$email=$login}
+    $psobj = @{
+                profile = @{
+                    firstName = $firstName    
+                    lastName = $lastName
+                    email = $email
+                    login = $login
+                    mobilePhone = $mobilePhone
+                }
+              }
+    foreach ($attrib in $additional.keys)
+    {
+        $psobj.profile.add($attrib, $additional.$attrib)
+    }
+    [string]$method = "Post"
+    [string]$resource = "/api/v1/users?activate=False"
     try
     {
         $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
@@ -2717,6 +2792,7 @@ function oktaEnrollFactorByUser()
         [parameter(Mandatory=$false)]$verifyData,
         [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$fid,
         [parameter(Mandatory=$false)][switch]$update,
+        [parameter(Mandatory=$false)][switch]$updatePhone,
         [parameter(Mandatory=$false)][switch]$activate
     )
 
@@ -2730,6 +2806,10 @@ function oktaEnrollFactorByUser()
         }
     }
 
+    [string]$method = "Post"
+    [string]$resource = '/api/v1/users/' + $uid + '/factors'
+    $params = New-Object System.Collections.Hashtable
+
     $body = @{
              factorType = $factorType
              provider = $provider
@@ -2739,20 +2819,18 @@ function oktaEnrollFactorByUser()
     {
         $body.Add("verify", $verifyData)
     }
-
-    [string]$resource = '/api/v1/users/' + $uid + '/factors'
-    [string]$method = "Post"
-
+    
     if ($update)
     {
-        #[string]$method = "Put"
-        $resource = $resource + '/' + $fid
+        #$resource = $resource + '/' + $fid
         $body = @{ profile = $factorProfile }
     } elseif ($activate)
     {
-        $resource = $resource + '?activate=true'
+        $params.Add("activate",$true)
     }
+    if ($updatePhone){$params.Add("updatePhone",$true)}
     
+    $resource = oktaBuildURI -resource $resource -params $params
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $body
@@ -3070,14 +3148,14 @@ function oktaVerifyPushbyUser()
 
     [string]$method = "Post"
     [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $push.id + '/verify'
-    if ( ($ClientIP -like "*") -or ($UserAgent -like "*") )
+    if ( ($ClientIP) -or ($UserAgent) )
     {
         $altHeaders = New-Object System.Collections.Hashtable
-        if ($UserAgent -like "*")
+        if ($UserAgent)
         {
             $altHeaders.Add('UserAgent', $UserAgent)
         }
-        if ($ClientIP -like "*")
+        if ($ClientIP)
         {
             $altHeaders.Add('X-Forwarded-For', $ClientIP)
         }
@@ -3121,7 +3199,7 @@ function _oktaPollPushLink()
         [string]$resource = $factorResult._links.poll.href
         try
         {
-            $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+            $factorResult = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
         }
         catch
         {
@@ -3131,14 +3209,10 @@ function _oktaPollPushLink()
             }
             throw $_
         }
-        
-        Write-Verbose ($request.factorResult)
-        if ($request.factorResult -ne 'WAITING')
-        {
-            $factorResult = $request
-        }
+        Write-Verbose ($factorResult.factorResult)
     }
 
+    <#
     switch ($factorResult.factorResult)
     {
 
@@ -3151,11 +3225,13 @@ function _oktaPollPushLink()
         "TIMEOUT"
         {
         }
+    
 
         default {$results = $factorResult}
     }
+    #>
 
-    return $results
+    return $factorResult
 }
 
 function oktaGetUserSchemabyType()
@@ -3564,7 +3640,7 @@ function oktaListLogs()
         $resource = $uri.Path + $uri.Query
         Write-Verbose("Before: " + $resource)
         $resource = [System.Web.HttpUtility]::UrlPathEncode($resource)
-        Write-Verbose(" After: " + $resource)        
+        Write-Verbose(" After: " + $resource)
     }
 
     [string]$method = "Get"
