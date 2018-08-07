@@ -3208,10 +3208,7 @@ function _oktaPollPushLink()
         }
         catch
         {
-            if ($oktaVerbose -eq $true)
-            {
-                Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
-            }
+            Write-Verbose($_.TargetObject)
             throw $_
         }
         Write-Verbose ($factorResult.factorResult)
