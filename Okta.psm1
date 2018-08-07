@@ -528,6 +528,11 @@ function _oktaMakeCall()
                 Write-Warning("Your item wasn't found!")
                 throw($evar[0].ErrorRecord.Exception.Message)
             }
+            "Forbidden"
+            {
+                Write-Warning("Your item was forbidden!")
+                throw($evar[0].ErrorRecord.Exception.Message)
+            }            
             default
             {
                 #Write-Warning("Okta RequestID: " + $_.Exception.Response.Headers['X-Okta-Request-Id'])
