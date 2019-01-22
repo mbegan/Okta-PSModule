@@ -1580,11 +1580,18 @@ function oktaListUsers()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
-        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
+        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
+        [parameter(Mandatory=$false)][String]$q
     )
     
     [string]$resource = '/api/v1/users' + '?limit=' + $limit
     [string]$method = "Get"
+
+    if ($q)
+    {
+        [string]$resource = $resource + "&q=" + $q
+    }
+
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
@@ -3119,6 +3126,7 @@ function oktaVerifyPushbyUser()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$fid,
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$username,
         [parameter(Mandatory=$false)][ValidateLength(7,15)][String]$ClientIP,
         [parameter(Mandatory=$false)][ValidateLength(1,1024)][String]$UserAgent
@@ -3134,25 +3142,31 @@ function oktaVerifyPushbyUser()
         }
     }
 
-    $factors = oktaGetFactorsbyUser -oOrg $oOrg -uid $uid
-    $push = $false
-    foreach ($factor in $factors)
+    if (!$fid)
     {
-        if (("push" -eq $factor.factorType) -and ("ACTIVE" -eq $factor.status))
+        $factors = oktaGetFactorsbyUser -oOrg $oOrg -uid $uid
+        $push = $false
+        foreach ($factor in $factors)
         {
-            $push = $factor
+            if (("push" -eq $factor.factorType) -and ("ACTIVE" -eq $factor.status))
+            {
+                $push = $factor
+            }
         }
-    }
-
-    if (!$push)
-    {
-        throw ("No push factor found for $uid")
+    
+        if (!$push)
+        {
+            throw ("No push factor found for $uid")
+        } else {
+            Write-Verbose("Found push factor " + $push.id + " sending push")
+            $fid = $push.id
+        }
     } else {
-        Write-Verbose("Found push factor " + $factor.id + " sending push")
+        Write-Verbose("Using supplied push factor " + $fid + " sending push")
     }
 
     [string]$method = "Post"
-    [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $push.id + '/verify'
+    [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid + '/verify'
     if ( ($ClientIP) -or ($UserAgent) )
     {
         $altHeaders = New-Object System.Collections.Hashtable
