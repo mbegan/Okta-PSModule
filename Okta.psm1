@@ -637,15 +637,19 @@ function _oktaNewCall()
         [parameter(Mandatory=$false)][Object]$body = @{},
         [parameter(Mandatory=$false)][boolean]$enablePagination = $OktaOrgs[$oOrg].enablePagination,
         [parameter(Mandatory=$false)][Object]$altHeaders,
-        [parameter(Mandatory=$false)][ValidateRange(1,1000)][int]$limit
+        [parameter(Mandatory=$false)][ValidateRange(1,1000)][int]$limit,
+        [parameter(Mandatory=$false)][boolean]$untrusted=$false
     )
 
     $headers = New-Object System.Collections.Hashtable
-    if ($OktaOrgs[$oOrg].encToken)
+    if (!$untrusted)
     {
-        $_c = $headers.add('Authorization',('SSWS ' + ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR( (ConvertTo-SecureString -string ($OktaOrgs[$oOrg].encToken).ToString()) ) ))))
-    } else {
-        $_c = $headers.add('Authorization',('SSWS ' + ($OktaOrgs[$oOrg].secToken).ToString()) )
+        if ($OktaOrgs[$oOrg].encToken)
+        {
+            $_c = $headers.add('Authorization',('SSWS ' + ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR( (ConvertTo-SecureString -string ($OktaOrgs[$oOrg].encToken).ToString()) ) ))))
+        } else {
+            $_c = $headers.add('Authorization',('SSWS ' + ($OktaOrgs[$oOrg].secToken).ToString()) )
+        }
     }
     $_c = $headers.add('Accept-Charset','ISO-8859-1,utf-8')
     $_c = $headers.add('Accept-Language','en-US')
@@ -1217,34 +1221,61 @@ function oktaCheckCreds()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [Parameter(Mandatory=$true)][string]$username,
-        [Parameter(Mandatory=$true)][string]$password,
-        [Parameter(Mandatory=$false)][string]$ipAddress=$null,
-        [Parameter(Mandatory=$false)][string]$deviceToken=$null,
-        [Parameter(Mandatory=$false)][string]$relayState=$null,
-        [Parameter(Mandatory=$false)][string]$UserAgent
+        [Parameter(Mandatory=$false)][string]$username,
+        [Parameter(Mandatory=$false)][string]$password,
+        [Parameter(Mandatory=$false)][string]$token,
+        [Parameter(Mandatory=$false)][string]$audience,
+        [Parameter(Mandatory=$false)][ValidateLength(1,2048)][string]$relayState,
+        [Parameter(Mandatory=$false)][switch]$multiOptionalFactorEnroll,
+        [Parameter(Mandatory=$false)][switch]$warnBeforePasswordExpired,      
+        [Parameter(Mandatory=$false)][string]$UserAgent,
+        [Parameter(Mandatory=$false)][string]$ipAddress,
+        [Parameter(Mandatory=$false)][ValidateLength(1,32)][string]$deviceToken,
+        [Parameter(Mandatory=$false)][switch]$untrusted
     )
     
-    $psobj = @{
-               "password" = $password
-               "username" = $username
-               "relayState" = $relayState
-               "context" = @{
-                             "ipAddress" = $ipAddress
-                             "userAgent" = $relayState
-                             "deviceToken" = $deviceToken
-                             }
-              }
     [string]$method = "Post"
     [string]$resource = "/api/v1/authn"
 
-    $altHeaders = New-Object System.Collections.Hashtable
+    if ($deviceToken)
+    {
+        $context = New-Object hashtable
+        $context.Add("deviceToken", $deviceToken)
+    }
+
+    if ($multiOptionalFactorEnroll -or $warnBeforePasswordExpired)
+    {
+        [string[]]$param = "multiOptionalFactorEnroll","warnBeforePasswordExpired"
+        $options = New-Object hashtable
+        foreach ($p in $param)
+        {
+            if (Get-Variable -Name $p -ErrorAction SilentlyContinue) 
+            {
+                if ((Get-Variable -Name $p -ValueOnly) -ne "")
+                {
+                    $options.Add($p,(Get-Variable -Name $p -ValueOnly))
+                }
+            }
+        }
+    }
+
+    [string[]]$param = "username","password","audience","relayState","token","options","context"
+    $psobj = New-Object hashtable
+    foreach ($p in $param)
+    {
+        if (Get-Variable -Name $p -ErrorAction SilentlyContinue) 
+        {
+            if ((Get-Variable -Name $p -ValueOnly) -ne "")
+            {
+                $psobj.Add($p,(Get-Variable -Name $p -ValueOnly))
+            }
+        }
+    }
+
+    $altHeaders = New-Object hashtable
     if ($UserAgent)
     {
-        if ($UserAgent -like "*")
-        {
-            $altHeaders.Add('UserAgent', $UserAgent)
-        }
+        $altHeaders.Add('UserAgent', $UserAgent)
     }
     if ($ipAddress)
     {
@@ -1253,7 +1284,7 @@ function oktaCheckCreds()
 
     try
     {
-        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj -altHeaders $altHeaders
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj -altHeaders $altHeaders -untrusted $untrusted
     }
     catch
     {
@@ -3020,6 +3051,7 @@ function oktaResetFactorsbyUser()
     foreach ($factor in $factors)
     {
         $_c = $freset.add( (oktaResetFactorbyUser -oOrg $oOrg -uid $uid -fid $factor.id) )
+        $_c = ""
     }
 
     return $freset
