@@ -2780,6 +2780,32 @@ function oktaUpdateAppExternalIdbyUserId()
     return $request
 }
 
+function oktaUpdateAppScopebyUserId()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][ValidateSet('USER','GROUP')][string]$scope
+    )
+    $psobj = @{ scope = $scope }
+    [string]$resource = "/api/v1/apps/" + $aid + "/users/" + $uid
+    [string]$method = "Post"
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
 function oktaActivateFactorByUser()
 {
     param
