@@ -3161,26 +3161,37 @@ function oktaVerifyPushbyUser()
         [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$fid,
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$username,
         [parameter(Mandatory=$false)][ValidateLength(7,15)][String]$ClientIP,
-        [parameter(Mandatory=$false)][ValidateLength(1,1024)][String]$UserAgent
+        [parameter(Mandatory=$false)][ValidateLength(1,1024)][String]$UserAgent,
+        [parameter(Mandatory=$false)][PSCustomObject]$SESSION_STEP_UP
     )
 
-    if (!$uid)
+    [string]$method = "Post"
+    [bool]$untrusted=$false
+    if (! $SESSION_STEP_UP)
     {
-        if ($username)
+        if (!$uid)
         {
-            $uid = (oktaGetUserbyID -oOrg $oOrg -userName $username).id
-        } else {
-            throw ("Must send one of uid or username")
+            if ($username)
+            {
+                $uid = (oktaGetUserbyID -oOrg $oOrg -userName $username).id
+            } else {
+                throw ("Must send one of uid or username")
+            }
         }
     }
 
     if (!$fid)
     {
-        $factors = oktaGetFactorsbyUser -oOrg $oOrg -uid $uid
+        if ($SESSION_STEP_UP)
+        {
+            $factors = $SESSION_STEP_UP._embedded.factors
+        } else {
+            $factors = oktaGetFactorsbyUser -oOrg $oOrg -uid $uid
+        }
         $push = $false
         foreach ($factor in $factors)
         {
-            if (("push" -eq $factor.factorType) -and ("ACTIVE" -eq $factor.status))
+            if ("push" -eq $factor.factorType)
             {
                 $push = $factor
             }
@@ -3189,16 +3200,14 @@ function oktaVerifyPushbyUser()
         if (!$push)
         {
             throw ("No push factor found for $uid")
-        } else {
-            Write-Verbose("Found push factor " + $push.id + " sending push")
-            $fid = $push.id
         }
+        Write-Verbose("Found push factor " + $push.id + " sending push")
+        [string]$resource = $push._links.verify.href.Split(".com")[1]
     } else {
         Write-Verbose("Using supplied push factor " + $fid + " sending push")
+        [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid + '/verify'
     }
-
-    [string]$method = "Post"
-    [string]$resource = '/api/v1/users/' + $uid + '/factors/' + $fid + '/verify'
+    
     if ( ($ClientIP) -or ($UserAgent) )
     {
         $altHeaders = New-Object System.Collections.Hashtable
@@ -3212,9 +3221,19 @@ function oktaVerifyPushbyUser()
         }
     }
 
+    if ($SESSION_STEP_UP)
+    {
+        $stateToken = $SESSION_STEP_UP.stateToken
+        $psobj = @{ stateToken = $stateToken}
+        $untrusted=$true
+    } else {
+        $stateToken=$false
+        $psobj = @{}
+    }
+
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -altHeaders $altHeaders
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -altHeaders $altHeaders -body $psobj -untrusted $untrusted
     }
     catch
     {
@@ -3227,7 +3246,7 @@ function oktaVerifyPushbyUser()
 
     Write-Verbose("Push transaction triggered, pulling for status @ :" + $request._links.poll.href)
 
-    $poll = _oktaPollPushLink -factorResult $request -oOrg $oOrg
+    $poll = _oktaPollPushLink -factorResult $request -oOrg $oOrg -stateToken $stateToken
     return $poll
 }
 
@@ -3236,7 +3255,8 @@ function _oktaPollPushLink()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        $factorResult
+        $factorResult,
+        $stateToken
     )
 
     $c = 0
@@ -3246,18 +3266,38 @@ function _oktaPollPushLink()
         $sleepy = (2 * ($c/2))
         Start-Sleep -Seconds $sleepy
         Write-Verbose("Adaptive sleeping for: " + $sleepy + " Seconds") 
-        [string]$method = $factorResult._links.poll.hints.allow[0]
-        [string]$resource = $factorResult._links.poll.href
+        if ($factorResult._links.poll.hints)
+        {
+            [string]$method = $factorResult._links.poll.hints.allow[0]
+            [string]$resource = $factorResult._links.poll.href
+        } else {
+            [string]$method = $factorResult._links.next.hints.allow[0]
+            [string]$resource = $factorResult._links.next.href
+        }
+        if ($stateToken)
+        {
+            $psobj = @{ stateToken = $stateToken}
+            [bool]$untrusted = $true
+        } else {
+            $psobj = @{}
+            [bool]$untrusted = $false
+        }
         try
         {
-            $factorResult = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+            $factorResult = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj -untrusted $untrusted
         }
         catch
         {
             Write-Verbose($_.TargetObject)
             throw $_
         }
-        Write-Verbose ($factorResult.factorResult)
+        if ($factorResult.factorResult)
+        {
+            Write-Verbose ($factorResult.factorResult)
+        } else {
+            Write-Verbose ($factorResult.status)
+        }
+
     }
 
     <#
