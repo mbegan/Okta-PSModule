@@ -772,6 +772,7 @@ function oktaNewUser()
         [string]$lastName,
         [string]$r_question="What Was your password?",
         [string]$r_answer=(oktaNewPassword),
+        [array]$groupIds,
         [object]$additional=@{}
     )
     $psobj = @{
@@ -789,6 +790,10 @@ function oktaNewUser()
     foreach ($attrib in $additional.keys)
     {
         $psobj.profile.add($attrib, $additional.$attrib)
+    }
+    if ($groupIds)
+    {
+        $psobj.add("groupIds", $groupIds)
     }
     [string]$method = "Post"
     [string]$resource = "/api/v1/users?activate=True"
