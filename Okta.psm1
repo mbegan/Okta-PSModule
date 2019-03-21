@@ -449,17 +449,30 @@ function _oktaMakeCall()
 
     try
     {
-
-        if ( ($method -eq "Post") -or ($method -eq "Put") )
+        if (!$Global:myWebSession)
         {
-            $postData = ConvertTo-Json $body -Depth 10
-            Write-Verbose($postData)
-
-            $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
-                        -ContentType $contentType -Verbose:$oktaVerbose -Body $postData -ErrorVariable evar       
+            Write-Verbose("Creating myWebSession first")
+            if ( ($method -eq "Post") -or ($method -eq "Put") )
+            {
+                $postData = ConvertTo-Json $body -Depth 10
+                Write-Verbose($postData)
+                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
+                            -ContentType $contentType -Verbose:$oktaVerbose -Body $postData -ErrorVariable evar -SessionVariable Global:myWebSession
+            } else {
+                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
+                            -ContentType $contentType -Verbose:$oktaVerbose -ErrorVariable evar -SessionVariable Global:myWebSession
+            }
         } else {
-            $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
-                        -ContentType $contentType -Verbose:$oktaVerbose -ErrorVariable evar
+            if ( ($method -eq "Post") -or ($method -eq "Put") )
+            {
+                $postData = ConvertTo-Json $body -Depth 10
+                Write-Verbose($postData)
+                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
+                            -ContentType $contentType -Verbose:$oktaVerbose -Body $postData -ErrorVariable evar -WebSession $Global:myWebSession
+            } else {
+                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
+                            -ContentType $contentType -Verbose:$oktaVerbose -ErrorVariable evar -WebSession $Global:myWebSession  
+            }
         }
 
         <# Verbose Request header readout #>
@@ -2017,7 +2030,7 @@ function oktaGetAppbyId()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$aid
     )
 
     [string]$resource = "/api/v1/apps/" + $aid
@@ -2094,6 +2107,75 @@ function oktaDeleteGroupbyId()
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaToggleAppAssignfromGroup()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$gid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
+        [parameter(Mandatory=$true)][ValidateSet("Add","Remove")][String]$action
+    )
+    
+    [string]$resource  = '/api/v1/apps/' + $aid + '/groups/' + $gid
+    
+    if ("Add" -eq $action)
+    {
+        [string]$method = "Put"
+    } else {
+        [string]$method = "Delete"
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaCreateGroup()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(1,255)][String]$name,
+        [parameter(Mandatory=$false)][ValidateLength(1,1024)][String]$description=$null
+    )
+
+    $psobj = @{
+        profile = @{
+            name = $name    
+            description = $description
+        }
+      }
+    
+    [string]$resource  = '/api/v1/groups'
+
+    [string]$method = "Post"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
     }
     catch
     {
@@ -4130,6 +4212,48 @@ function oktaCreateZone()
                   gateways = $gateways
                   proxies = $proxies
                 }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $request
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaCreateApp()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(1,255)][String]$name,
+        [parameter(Mandatory=$true)][ValidateLength(1,100)][String]$label,
+        [parameter(Mandatory=$true)][ValidateSet("BOOKMARK","BASIC_AUTH","BROWSER_PLUGIN","SECURE_PASSWORD_STORE","SAML_2_0","WS_FEDERATION",
+        "AUTO_LOGIN","OPENID_CONNECT","Custom")][String]$signOnMode,
+        [parameter(Mandatory=$true)][hashtable]$settings,
+        [parameter(Mandatory=$false)][hashtable]$visibility,
+        [parameter(Mandatory=$false)][array]$features
+    )
+
+    [string]$method = "Post"
+    [string]$resource = '/api/v1/apps'
+
+    $request = @{ 
+                  name = $name
+                  label = $label
+                  status = "ACTIVE"
+                  settings = $settings
+                  signOnMode = $signOnMode
+                }
+    if ($visibility){$request.Add("visibility", $visibility)}
+    if ($features){$request.Add("features", $features)}
 
     try
     {
