@@ -1661,6 +1661,43 @@ function oktaListUsers()
     return $request
 }
 
+function oktaListAdministrators()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [int]$limit=$OktaOrgs[$oOrg].pageSize,
+        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$false)][String]$q
+    )
+    
+    [string]$resource = '/api/internal/administrators'
+    [string]$method = "Get"
+
+    if ($q)
+    {
+        [string]$resource = $resource + "&q=" + $q
+    } elseif ($uid)
+    {
+        [string]$resource = $resource + "/" + $uid
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaListUsersbyStatus()
 {
     param
