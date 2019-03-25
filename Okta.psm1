@@ -2439,7 +2439,7 @@ function oktaGetRoleTargetsByUserId()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$rid
+        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(16,20)][String]$rid
     )
        
     [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid + "/targets/groups"
