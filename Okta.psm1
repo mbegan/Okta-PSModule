@@ -2412,7 +2412,7 @@ function oktaDelUserFromRoles()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(16,20)][String]$rid
+        [parameter(Mandatory=$true)][ValidateLength(14,24)][String]$rid
     )
        
     [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid
@@ -2439,7 +2439,7 @@ function oktaGetRoleTargetsByUserId()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(16,20)][String]$rid
+        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(14,24)][String]$rid
     )
        
     [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid + "/targets/groups"
@@ -2466,7 +2466,7 @@ function oktaAddRoleTargetsByUserId()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(16,20)][String]$rid,
+        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(14,24)][String]$rid,
         [parameter(Mandatory=$true)][alias("groupId")][ValidateLength(20,20)][String]$gid
     )
        
@@ -2494,7 +2494,7 @@ function oktaDelRoleTargetsByUserId()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(16,20)][String]$rid,
+        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(14,24)][String]$rid,
         [parameter(Mandatory=$true)][alias("groupId")][ValidateLength(20,20)][String]$gid
     )
        
