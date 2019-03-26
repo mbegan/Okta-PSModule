@@ -1668,16 +1668,15 @@ function oktaListAdministrators()
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
-        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$false)][String]$q
+        [parameter(Mandatory=$false)][alias("userId")][ValidateLength(20,20)][String]$uid
     )
     
     [string]$resource = '/api/internal/administrators'
     [string]$method = "Get"
 
-    if ($q)
+    if ($limit)
     {
-        [string]$resource = $resource + "&q=" + $q
+        [string]$resource = $resource + "?limit=" + $limit
     } elseif ($uid)
     {
         [string]$resource = $resource + "/" + $uid
