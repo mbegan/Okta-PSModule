@@ -1,6 +1,5 @@
 {
-  "name": "Powershell module for Okta managment APIs", # up to 80 characters. if not supplied, will use the GitHub repo name (e.g., okta-toolkit-example)
-  "description": "A Powershell module that provides native Powershell capabilities on top of Okta's REST APIs", # up to 80 characters. If not supplied, will pull from the GitHub repo description field
+  "name": "Powershell module for Okta managment APIs",
+  "description": "A Powershell module that provides native Powershell capabilities on top of Okta's REST APIs",
   "categories": ["user management", "authentication", "authorization", "mfa", "sso", "apiAuthentication"]
-  "logo": "https://avatars3.githubusercontent.com/u/11389580?s=96&v=4" # an optional logo. should be 96px96px. If not supplied, will pull author's avatar
 }
