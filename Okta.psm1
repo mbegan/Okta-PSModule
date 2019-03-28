@@ -1668,13 +1668,18 @@ function oktaListAdministrators()
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
-        [parameter(Mandatory=$false)][alias("userId")][ValidateLength(20,20)][String]$uid
+        [parameter(Mandatory=$false)][alias("userId")][ValidateLength(20,20)][String]$uid,
+        [switch]$groups
     )
     
     [string]$resource = '/api/internal/administrators'
     [string]$method = "Get"
 
-    if ($limit)
+    if ($groups)
+    {
+        [string]$resource = $resource + "/groups"
+    }
+    elseif ($limit)
     {
         [string]$resource = $resource + "?limit=" + $limit
     } elseif ($uid)
@@ -2376,6 +2381,32 @@ function oktaListGroups()
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -limit $limit
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaGetRolesByGroupId()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$gid
+    )
+       
+    [string]$resource = "/api/v1/groups/" + $gid + "/roles"
+    [string]$method = "Get"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
     }
     catch
     {
