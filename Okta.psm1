@@ -2479,7 +2479,7 @@ function oktaDelUserFromRoles()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][ValidateLength(16,20)][String]$rid
+        [parameter(Mandatory=$true)][ValidateLength(14,24)][String]$rid
     )
        
     [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid
@@ -2506,11 +2506,67 @@ function oktaGetRoleTargetsByUserId()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(16,20)][String]$rid
+        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(14,24)][String]$rid
     )
        
     [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid + "/targets/groups"
     [string]$method = "Get"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaAddRoleTargetsByUserId()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(14,24)][String]$rid,
+        [parameter(Mandatory=$true)][alias("groupId")][ValidateLength(20,20)][String]$gid
+    )
+       
+    [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid + "/targets/groups/" + $gid
+    [string]$method = "Put"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaDelRoleTargetsByUserId()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(14,24)][String]$rid,
+        [parameter(Mandatory=$true)][alias("groupId")][ValidateLength(20,20)][String]$gid
+    )
+       
+    [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid + "/targets/groups/" + $gid
+    [string]$method = "Delete"
     
     try
     {

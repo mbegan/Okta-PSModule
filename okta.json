@@ -1,0 +1,5 @@
+{
+  "name": "Powershell module for Okta managment APIs",
+  "description": "A Powershell module that provides native Powershell capabilities on top of Okta's REST APIs",
+  "categories": ["user management", "authentication", "authorization", "mfa", "sso", "apiAuthentication"]
+}

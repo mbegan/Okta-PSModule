@@ -162,6 +162,7 @@ catch
 #### Available Commands
 
 - oktaActivateUserbyId
+- oktaAddRoleTargetsByUserId
 - oktaAddUseridtoGroupid
 - oktaAddUsertoRoles
 - oktaAdminExpirePasswordbyID
@@ -178,6 +179,7 @@ catch
 - oktaDeactivateUserbyID
 - oktaDeleteGroupbyId
 - oktaDeleteUserfromGroup
+- oktaDelRoleTargetsByUserId
 - oktaDelUserFromAllGroups
 - oktaDelUseridfromAppid
 - oktaDelUseridfromGroupid
