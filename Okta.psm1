@@ -1630,7 +1630,9 @@ function oktaListUsers()
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [int]$limit=$OktaOrgs[$oOrg].pageSize,
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
-        [parameter(Mandatory=$false)][String]$q
+        [parameter(Mandatory=$false)][String]$q,
+        [parameter(Mandatory=$false)][String]$search,
+        [parameter(Mandatory=$false)][String]$filter
     )
     
     [string]$resource = '/api/v1/users' + '?limit=' + $limit
@@ -1639,6 +1641,13 @@ function oktaListUsers()
     if ($q)
     {
         [string]$resource = $resource + "&q=" + $q
+    } elseif ($search)
+    {
+        [string]$resource = $resource + "&search=" + $search
+    }
+    elseif ($filter)
+    {
+        [string]$resource = $resource + "&filter=" + $filter
     }
 
     try
