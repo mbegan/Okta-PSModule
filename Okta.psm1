@@ -1711,6 +1711,45 @@ function oktaListAdministrators()
     return $request
 }
 
+function oktaListUsersWithSearch()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [int]$limit=$OktaOrgs[$oOrg].pageSize,
+        [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination,
+        [parameter(Mandatory=$true)][String]$search
+    )
+    
+    [string]$resource = '/api/v1/users' + '?limit=' + $limit
+    $search = [System.Web.HttpUtility]::UrlPathEncode($search)
+    [string]$method = "Get"
+
+    if ($search)
+    {
+        [string]$resource = $resource + "&search=" + $search
+    }
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination $enablePagination
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
+    return $request
+}
+
 function oktaListUsersbyStatus()
 {
     param
