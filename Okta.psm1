@@ -2183,6 +2183,37 @@ function oktaGetAppLinksbyUserId()
     return $request
 }
 
+function oktaNewGroup()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [string]$name,
+        [string]$description
+    )
+    $psobj = @{
+                profile = @{
+                    name = $name
+                    description = $description
+                }
+              }
+    [string]$method = "Post"
+    [string]$resource = "/api/v1/groups"
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaDeleteGroupbyId()
 {
     param
