@@ -1127,7 +1127,7 @@ function oktaAdminUpdatePasswordbyID()
     return $request
 }
 
-function oktaForgotPasswordbyId()
+function oktaForgotPasswordbyID()
 {
     param
     (
@@ -2015,7 +2015,7 @@ function oktaDeactivateUserbyID()
     return $request
 }
 
-function oktaActivateUserbyId()
+function oktaActivateUserbyID()
 {
     param
     (
@@ -2114,7 +2114,7 @@ function oktaUpdateAppOverrides()
     oktaUpdateApp -oOrg $org -aid $aid -app $new
 }
 
-function oktaGetAppbyId()
+function oktaGetAppbyID()
 {
     param
     (
@@ -2139,7 +2139,7 @@ function oktaGetAppbyId()
     return $request
 }
 
-function oktaGetAppsbyUserId()
+function oktaGetAppsbyUserID()
 {
     param
     (
@@ -2158,7 +2158,7 @@ function oktaGetAppsbyUserId()
     return $apps
 }
 
-function oktaGetAppLinksbyUserId()
+function oktaGetAppLinksbyUserID()
 {
     param
     (
@@ -2214,7 +2214,7 @@ function oktaNewGroup()
     return $request
 }
 
-function oktaDeleteGroupbyId()
+function oktaDeleteGroupbyID()
 {
     param
     (
@@ -2308,7 +2308,7 @@ function oktaCreateGroup()
     return $request
 }
 
-function oktaGetGroupbyId()
+function oktaGetGroupbyID()
 {
     param
     (
@@ -2339,7 +2339,7 @@ function oktaGetGroupbyId()
     return $request
 }
 
-function oktaGetGroupStatsbyId()
+function oktaGetGroupStatsbyID()
 {
     param
     (
@@ -2366,7 +2366,7 @@ function oktaGetGroupStatsbyId()
     return $request
 }
 
-function oktaGetGroupsbyUserId()
+function oktaGetGroupsbyUserID()
 {
     param
     (
@@ -2498,7 +2498,7 @@ function oktaGetRolesByGroupId()
     return $request
 }
 
-function oktaGetRolesByUserId()
+function oktaGetRolesByUserID()
 {
     param
     (
@@ -2579,7 +2579,7 @@ function oktaDelUserFromRoles()
     return $request
 }
 
-function oktaGetRoleTargetsByUserId()
+function oktaGetRoleTargetsByUserID()
 {
     param
     (
@@ -2662,7 +2662,7 @@ function oktaDelRoleTargetsByUserId()
     return $request
 }
 
-function oktaAddUseridtoGroupid()
+function oktaAddUseridtoGroupID()
 {
     param
     (
@@ -2707,7 +2707,7 @@ function oktaAddUseridtoGroupid()
     return $request
 }
 
-function oktaDelUseridfromGroupid()
+function oktaDelUseridfromGroupID()
 {
     param
     (
@@ -2734,7 +2734,7 @@ function oktaDelUseridfromGroupid()
     return $request
 }
 
-function oktaDelUseridfromAppid()
+function oktaDelUseridfromAppID()
 {
     param
     (
@@ -2761,7 +2761,7 @@ function oktaDelUseridfromAppid()
     return $request
 }
 
-function oktaGetprofilebyId()
+function oktaGetprofilebyID()
 {
     param
     (
@@ -2772,7 +2772,7 @@ function oktaGetprofilebyId()
     return $profile
 }
 
-function oktaGetAppProfilebyUserId()
+function oktaGetAppProfilebyUserID()
 {
     param
     (
@@ -2815,7 +2815,7 @@ function oktaGetMasterProfile()
     oktaGetAppProfilebyUserId -aid $aid -uid $uid -oOrg $oOrg
 }
 
-function oktaGetGroupMembersbyId()
+function oktaGetGroupMembersbyID()
 {
     param
     (
@@ -2918,7 +2918,7 @@ function oktaSetAppCredentials()
     return $request
 }
 
-function oktaUnlockUserbyId()
+function oktaUnlockUserbyID()
 {
     param
     (
@@ -2943,7 +2943,7 @@ function oktaUnlockUserbyId()
     return $request
 }
 
-function oktaConvertGroupbyId()
+function oktaConvertGroupbyID()
 {
     param
     (
@@ -3001,7 +3001,7 @@ function oktaUpdateUserProfilebyID()
     return $request
 }
 
-function oktaUpdateAppProfilebyUserId()
+function oktaUpdateAppProfilebyUserID()
 {
     param
     (
@@ -3038,7 +3038,7 @@ function oktaUpdateAppProfilebyUserId()
     return $request
 }
 
-function oktaUpdateAppExternalIdbyUserId()
+function oktaUpdateAppExternalIdbyUserID()
 {
     param
     (
@@ -4676,7 +4676,7 @@ function oktaListOANApps()
     return $request
 }
 
-function oktaListAppsAssignedbyGroupId()
+function oktaListAppsAssignedbyGroupID()
 {
     param
     (
