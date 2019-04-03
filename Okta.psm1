@@ -4840,4 +4840,191 @@ function oktaListGroupRules()
     return $request
 }
 
+function oktaGetGroupRulebyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$ruleid
+    )
+
+    [string]$resource = '/api/v1/groups/rules/' + $ruleid
+    [string]$method = 'Get'
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaNewGroupRule()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][string]$name,
+        [parameter(Mandatory=$true)][string]$expression,
+        [parameter(Mandatory=$true)][string]$assignToGids,
+        [string[]]$excludeUids
+        # Currently not supported [string[]]$excludeGids
+    )
+
+    $psobj = @{   type = 'group_rule'
+                  name = $name
+                  conditions = @{
+                      people = @{
+                          users = @{
+                          }
+                          groups = @{
+                          }
+                      }
+                      expression = @{
+                          value = $expression
+                          type = 'urn:okta:expression:1.0'
+                      }
+                  }
+                  actions = @{
+                      assignUserToGroups = @{
+                          groupIds = [string[]] $assignToGids
+                      }
+                  }
+              }
+
+    if ($excludeGids)
+    {
+      $psobj.conditions.people.groups += @{ exclude = [string[]]$excludeGids }
+    }
+    if ($excludeUids)
+    {
+      $psobj.conditions.people.users += @{ exclude = [string[]]$excludeUids }
+    }
+
+    [string]$method = 'Post'
+    [string]$resource = '/api/v1/groups/rules'
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaUpdateGroupRulebyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$ruleid,
+        [parameter(Mandatory=$true)][object]$body
+    )
+
+    $psobj = $body
+
+    [string]$method = 'Put'
+    [string]$resource = '/api/v1/groups/rules/' + $ruleid
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaDeleteGroupRulebyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$ruleid
+    )
+    
+    [string]$resource  = '/api/v1/groups/rules/' + $ruleid
+    [string]$method = 'Delete'
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaActivateGroupRulebyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$ruleid
+    )
+    
+    [string]$resource  = '/api/v1/groups/rules/' + $ruleid + '/lifecycle/activate'
+    [string]$method = 'Post'
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaDeactivateGroupRulebyID()
+{ 
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$ruleid
+    )
+    
+    [string]$resource  = '/api/v1/groups/rules/' + $ruleid + '/lifecycle/deactivate'
+    [string]$method = 'Post'
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 Export-ModuleMember -Function okta* -Alias okta*
