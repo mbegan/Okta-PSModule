@@ -1776,7 +1776,7 @@ function oktaListUsersbyDate()
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [ValidateSet('STAGED','PROVISIONED','ACTIVE','RECOVERY','LOCKED_OUT','PASSWORD_EXPIRED','DEPROVISIONED')][string]$status,
         #[ValidateSet('lastUpdated','lastLogin','statusChanged','activated','created','passwordChanged')][string]$field,
-        [parameter(Mandatory=$true)][ValidateSet('lastUpdated')][string]$field,
+        [parameter(Mandatory=$true)][ValidateSet('lastUpdated','activated')][string]$field,
         [parameter(Mandatory=$true)][ValidateSet('gt','lt','eq','between')][string]$operator,
         $date,
         $start,
