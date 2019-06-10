@@ -226,6 +226,7 @@ catch
 - oktaUpdateApp
 - oktaUpdateAppExternalIdbyUserId
 - oktaUpdateAppProfilebyUserId
+- oktaUpdateGroupProfilebyID
 - oktaUpdateUserbyID
 - oktaUpdateUserProfilebyID
 - oktaVerifyMFAnswerbyUser
