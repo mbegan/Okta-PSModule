@@ -1,9 +1,13 @@
 # Okta-PSModule Documentation
 
-======================
+--------
 
 This is not to be confused with or in competition with the official Okta [Powershell/CSharp module](https://github.com/okta/oktasdk-csharp/tree/master/Okta.Core.Automation).
 This is something I have been building and adding to for a few years. I still need the functionality it provides on a near daily basis so I figured it was time to share.
+
+--------
+
+:information_source: **Disclaimer:** This tool is not an official Okta product and does not qualify for any Okta support.
 
 --------
 
