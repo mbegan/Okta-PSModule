@@ -2565,16 +2565,18 @@ function oktaGetRoleTargetsByUserId()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
-        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(14,24)][String]$rid
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid
     )
        
-    [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid + "/targets/groups"
+    [string]$resource = "/api/internal/administrators/" + $uid
     [string]$method = "Get"
     
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
+        $roledetails = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
+        $request = ForEach ($gid in ($roledetails).userAdminGroupIds) {
+            oktaGetGroupbyId -oOrg $oOrg -gid $gid
+        }
     }
     catch
     {
