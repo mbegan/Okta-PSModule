@@ -1011,9 +1011,16 @@ function oktaUpdateGroupProfilebyID()
     $name = (oktaGetGroupbyId -oOrg $oOrg -gid $gid).profile.name
     }
     if (!$description)
-    {
-    $description = (oktaGetGroupbyId -oOrg $oOrg -gid $gid).profile.description
-    }
+	{
+		try
+		{
+		$description = (oktaGetGroupbyId -oOrg $oOrg -gid $gid).profile.description
+		}
+		catch
+		{
+		$description = " "
+		}
+	}
     $psobj = @{
         profile = @{
             name = $name
