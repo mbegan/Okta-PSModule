@@ -650,7 +650,7 @@ function _oktaNewCall()
         [parameter(Mandatory=$false)][Object]$body = @{},
         [parameter(Mandatory=$false)][boolean]$enablePagination = $OktaOrgs[$oOrg].enablePagination,
         [parameter(Mandatory=$false)][Object]$altHeaders,
-        [parameter(Mandatory=$false)][ValidateRange(1,1000)][int]$limit,
+        [parameter(Mandatory=$false)][ValidateRange(1,10000)][int]$limit,
         [parameter(Mandatory=$false)][boolean]$untrusted=$false
     )
 
@@ -1815,7 +1815,7 @@ function oktaListUsersbyDate()
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [ValidateSet('STAGED','PROVISIONED','ACTIVE','RECOVERY','LOCKED_OUT','PASSWORD_EXPIRED','DEPROVISIONED')][string]$status,
         #[ValidateSet('lastUpdated','lastLogin','statusChanged','activated','created','passwordChanged')][string]$field,
-        [parameter(Mandatory=$true)][ValidateSet('lastUpdated')][string]$field,
+        [parameter(Mandatory=$true)][ValidateSet('lastUpdated','activated')][string]$field,
         [parameter(Mandatory=$true)][ValidateSet('gt','lt','eq','between')][string]$operator,
         $date,
         $start,
@@ -4760,7 +4760,7 @@ function oktaListPolicies()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$false)][ValidateRange(1,100)][String]$limit=20,
+        [parameter(Mandatory=$false)][int]$limit=20,
         [parameter(Mandatory=$true)][ValidateSet("OKTA_SIGN_ON", "PASSWORD", "MFA_ENROLL")][String]$type,
         [parameter(Mandatory=$false)][switch]$rules,
         [parameter(Mandatory=$false)][string]$pid
@@ -4808,7 +4808,7 @@ function oktaListGroupRules()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$false)][ValidateRange(1,100)][String]$limit=50,
+        [parameter(Mandatory=$false)][int]$limit=50,
         [parameter(Mandatory=$false)][string]$grid
     )
 
@@ -4820,6 +4820,11 @@ function oktaListGroupRules()
         $resource += '/' + $grid
     }
 
+    if ($limit)
+    {
+        $resource += "?limit=$limit"
+    }
+    
     if ($rules)
     {
         $resource += "&expand=rules"
@@ -4827,7 +4832,7 @@ function oktaListGroupRules()
 
     try
     {
-        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -limit $limit
     }
     catch
     {
