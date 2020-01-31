@@ -3690,6 +3690,39 @@ function oktaGetAppSchema()
     return $request
 }
 
+function oktaUpdateAppSchema()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
+        [parameter(Mandatory=$false)][object]$baseSchema,
+        [parameter(Mandatory=$false)][object]$customSchema
+    )
+    
+    if (($source) -and ($target))
+    {
+      $psobj = ""
+    }
+
+    [string]$resource = '/api/v1/meta/schemas/apps/' + $aid + '/default'
+    [string]$method = "Post"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaGetAppTypes()
 {
     param
@@ -3757,6 +3790,66 @@ function oktaGetMapping()
     return $request
 }
 
+
+function oktaUpdateMapping()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$source,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$target,
+        [parameter(Mandatory=$true)][object]$propertyMappings
+    )
+    
+    $psobj = @{ 
+      sourceId = $source
+      targetId = $target
+      propertyMappings = $propertyMappings
+    }
+
+    [string]$resource = '/api/internal/v1/mappings'
+    [string]$method = "Put"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaGetAppPushGroups()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$aid
+    )
+
+    [string]$method = "Get"
+    [string]$resource = '/api/internal/instance/' + $aid + '/grouppush'
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
 function oktaGetUserSchema()
 {
     param
@@ -3771,6 +3864,35 @@ function oktaGetUserSchema()
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaUpdateUserSchema()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][String]$sid="default",
+        [parameter(Mandatory=$true)][object]$definitions
+    )
+    
+    $psobj = @{ definitions = $definitions }
+
+    [string]$resource = '/api/v1/meta/schemas/user/' + $sid
+    [string]$method = "Post"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
     }
     catch
     {
@@ -4094,6 +4216,32 @@ function oktaListProviders()
         $resource += '?q=' + $filter
     }
 
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaGetProviderByID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][ValidateLength(20,20)][String]$pid
+    )
+
+    [string]$method = "Get"
+    [string]$resource = '/api/v1/idps/' + $pid
+    
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
