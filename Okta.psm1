@@ -4949,7 +4949,378 @@ function oktaListPolicies()
     return $request
 }
 
-################## GroupRules ###########################
+function oktaGetPolicybyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][string]$pid
+    )
+
+    [string]$method = 'Get'
+    [string]$resource = '/api/v1/policies/' + $pid
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaNewPolicy()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateSet('OKTA_SIGN_ON', 'PASSWORD', 'MFA_ENROLL', 'OAUTH_AUTHORIZATION_POLICY', 'IDP_DISCOVERY')][String]$type,
+        [parameter(Mandatory=$true)][string]$name,
+        [parameter(Mandatory=$false)][string]$description,
+        [parameter(Mandatory=$false)][int]$priority=1,
+        [parameter(Mandatory=$false)][ValidateSet('ACTIVE','INACTIVE')][String]$status='INACTIVE',
+        [parameter(Mandatory=$false)][object]$conditions,
+        [parameter(Mandatory=$false)][object]$settings
+   )
+
+    [string]$method = 'Post'
+    [string]$resource = '/api/v1/policies'
+
+    $psobj = @{
+      type = $type
+      name = $name
+      description = $description
+      priority = $priority
+      status = $status
+    }
+
+    if ($conditions)
+    {
+      $psobj.conditions = $conditions
+    }
+
+    if ($settings)
+    {
+      $psobj.settings = $settings
+    }
+
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaUpdatePolicybyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][string]$pid,
+        [parameter(Mandatory=$true)][object]$policy
+    )
+
+    $psobj = $policy
+
+    [string]$method = 'Put'
+    [string]$resource = '/api/v1/policies/' + $pid
+
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaDeletePolicybyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][string]$pid
+    )
+    
+    [string]$method = 'Delete'
+    [string]$resource = '/api/v1/policies/' + $pid
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaActivatePolicybyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][string]$pid
+    )
+    
+    [string]$method = 'Post'
+    [string]$resource = '/api/v1/policies/' + $pid + '/lifecycle/activate'
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaDeactivatePolicybyID()
+{ 
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$false)][string]$pid
+    )
+    
+    [string]$method = 'Post'
+    [string]$resource = '/api/v1/policies/' + $pid + '/lifecycle/deactivate'
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+################## Policy Rules ###########################
+
+function oktaGetPolicyRulesbyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$policyId
+    )
+
+    [string]$method = 'Get'
+    [string]$resource = '/api/v1/policies/' + $policyId + '/rules'
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaNewPolicyRule()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$policyId,
+        [parameter(Mandatory=$true)][ValidateSet('SIGN_ON', 'PASSWORD', 'MFA_ENROLL')][String]$type,
+        [parameter(Mandatory=$true)][string]$name,
+        [parameter(Mandatory=$false)][int]$priority=1,
+        [parameter(Mandatory=$false)][ValidateSet('ACTIVE','INACTIVE')][String]$status='INACTIVE',
+        [parameter(Mandatory=$false)][object]$conditions,
+        [parameter(Mandatory=$false)][object]$actions
+    )
+
+    $psobj = @{
+      type = $type
+      name = $name
+      priority = $priority
+      status = $status
+    }
+
+    if ($conditions)
+    {
+      $psobj.conditions = $conditions
+    }
+
+    if ($actions)
+    {
+      $psobj.actions = $actions
+    }
+
+    [string]$method = 'Post'
+    [string]$resource = '/api/v1/policies/' + $policyId + '/rules'
+
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaUpdatePolicyRulebyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$policyId,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$ruleId,
+        [parameter(Mandatory=$true)][object]$policy_rule
+    )
+
+    $psobj = $policy_rule
+
+    [string]$method = 'Put'
+    [string]$resource = '/api/v1/policies/' + $policyId + '/rules/' + $ruleId
+
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaDeletePolicyRulebyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$policyId,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$ruleId
+    )
+    
+    [string]$method = 'Delete'
+    [string]$resource = '/api/v1/policies/' + $policyId + '/rules/' + $ruleId
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaActivatePolicyRulebyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$policyId,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$ruleId
+    )
+    
+    [string]$method = 'Post'
+    [string]$resource = '/api/v1/policies/' + $policyId + '/rules/' + $ruleId + '/lifecycle/activate'
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaDeactivatePolicyRulebyID()
+{ 
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$policyId,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$ruleId
+    )
+    
+    [string]$method = 'Post'
+    [string]$resource = '/api/v1/policies/' + $policyId + '/rules/' + $ruleId + '/lifecycle/deactivate'
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+################## Group Rules ###########################
 
 function oktaListGroupRules()
 {
