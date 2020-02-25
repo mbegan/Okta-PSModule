@@ -376,7 +376,7 @@ function _oktaRateLimitCheck()
 
     $used = ($remain / $limit)
     $usedpct = $used.ToString('P')
-    $limit_note = 'You have $remain out of $limit aka: $usedpct left in the tank'
+    $limit_note = 'You have ' + $remain + ' out of ' + $limit + ' aka: ' + $usedpct + ' left in the tank'
 
     if ($remain -eq 0)
     {
@@ -387,7 +387,7 @@ function _oktaRateLimitCheck()
     if ($used -lt $warn)
     {
         $reset = _oktaRateLimitTimeRemaining -seconds $reset
-        $limit_note = 'You have $remain out of $limit aka: $used in the next $reset seconds'
+        $limit_note = 'You have ' + $remain + ' out of ' + $limit + ' aka: ' + $used + ' in the next ' + $reset + ' seconds'
         Write-Warning($limit_note)
 
         if ($used -lt $throttle)
