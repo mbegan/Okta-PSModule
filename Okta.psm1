@@ -1479,7 +1479,7 @@ function oktaGetUsersbyAppIDWithStatus()
         [int]$limit=$OktaOrgs[$oOrg].pageSize
     )
 
-    [string]$filter = 'status eq ' + '''+$status+'''
+    [string]$filter = 'status eq "' + $status + '"'
     #$filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
     
     [string]$method = 'Get'
@@ -1528,12 +1528,12 @@ function oktaListApps()
     if ($status)
     {
         $doFilter = $true
-        [string]$filter = 'status eq ' + ''' + $status + '''
+        [string]$filter = 'status eq "' + $status + '"'
     }
     if ($gid)
     {
         $doFilter = $true
-        [string]$filter = 'group.id eq ' + ''' + $gid + '''
+        [string]$filter = 'group.id eq "' + $gid + '"'
         if ($expand)
         {
             $filter += '&expand=group/' + $gid
@@ -1542,7 +1542,7 @@ function oktaListApps()
     if ($uid)
     {
         $doFilter = $true
-        [string]$filter = 'user.id eq ' + ''' + $uid + '''
+        [string]$filter = 'user.id eq "' + $uid + '"'
         if ($expand)
         {
             $filter += '&expand=user/' + $uid
@@ -1760,7 +1760,7 @@ function oktaListUsersbyStatus()
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
     )
 
-    [string]$filter = 'status eq ' + '''+$status+'''
+    [string]$filter = 'status eq "' + $status + '"'
     #$filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
     [string]$resource = '/api/v1/users?filter=' + $filter + '&limit=' + $limit
 
@@ -1841,7 +1841,7 @@ function oktaListUsersbyDate()
         {
             Throw ('Bad or missing dates in filter')
         }
-        [string]$filter = $field + ' gt ' +  '''+$start+'' and ' + $field + ' lt ' + '''+$stop+'''
+        [string]$filter = $field + ' gt "' +  $start + '" and ' + $field + ' lt "' + $stop + '"'
     } else {
         try
         {
@@ -1854,12 +1854,12 @@ function oktaListUsersbyDate()
         {
             Throw ('Bad or missing dates in filter')
         }
-        [string]$filter = $field + ' ' + $operator +' ' + '''+$date+'''
+        [string]$filter = $field + ' ' + $operator + ' "' + $date + '"'
     }
 
     if ($status)
     {
-        $filter = $filter + ' and status eq ' + '''+$status+'''
+        $filter = $filter + ' and status eq "' + $status + '"'
     }
 
     #$filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
@@ -1897,11 +1897,11 @@ function oktaListUsersbyAttribute()
         [boolean]$enablePagination=$OktaOrgs[$oOrg].enablePagination
     )
 
-    [string]$filter = 'profile.' + $field + ' ' + $operator +' ' + '''+$value+'''
+    [string]$filter = 'profile.' + $field + ' ' + $operator + ' "' + $value + '"'
 
     if ($status)
     {
-        $filter = $filter + ' and status eq ' + '''+$status+'''
+        $filter = $filter + ' and status eq "' + $status + '"'
     }
 
     #$filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
@@ -4026,9 +4026,9 @@ function oktaListEvents()
 
     if ($filter -and $publishedFilter)
     {
-        $filter = $filter + ' and published gt '' + $since + '''
+        $filter = $filter + ' and published gt "' + $since + '"'
     } elseif ($publishedFilter) {
-        $filter = 'published gt '' + $since + '''
+        $filter = 'published gt "' + $since + '"'
     }
 
     if ($until -and $publishedFilter)
@@ -4045,7 +4045,7 @@ function oktaListEvents()
 
     if ($until -and $publishedFilter)
     {
-        $filter = $filter + ' and published lt '' + $until + '''
+        $filter = $filter + ' and published lt "' + $until + '"'
     }
 
     #$filter = [System.Web.HttpUtility]::UrlPathEncode($filter)
@@ -5336,12 +5336,12 @@ function oktaListGroupRules()
 
     if ($pid)
     {
-        $resource += '/' + $grid
+        $resource += ('/' + $grid)
     }
 
     if ($limit)
     {
-        $resource += '?limit=$limit'
+        $resource += ('?limit=' + $limit)
     }
     
     if ($rules)
