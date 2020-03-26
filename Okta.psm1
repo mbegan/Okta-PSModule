@@ -3696,14 +3696,10 @@ function oktaUpdateAppSchema()
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
         [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
-        [parameter(Mandatory=$false)][object]$baseSchema,
-        [parameter(Mandatory=$false)][object]$customSchema
+        [parameter(Mandatory=$true)][object]$definitions
     )
     
-    if (($source) -and ($target))
-    {
-      $psobj = ''
-    }
+    $psobj = @{ definitions = $definitions }
 
     [string]$resource = '/api/v1/meta/schemas/apps/' + $aid + '/default'
     [string]$method = 'Post'
