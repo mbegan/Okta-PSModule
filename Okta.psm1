@@ -1918,6 +1918,43 @@ function oktaResetPasswordbyID()
     return $request
 }
 
+function oktaSetPasswordbyID()
+{
+   param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][Security.SecureString]$password
+    )
+    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
+    $PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    $psobj = @{
+                "credentials" = @{
+                  "password" = @{ "value" = $PlainPassword }
+                 }
+              }
+
+    [string]$method = "Put"
+    [string]$resource = "/api/v1/users/" + $uid
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    foreach ($user in $request)
+    {
+        $user = OktaUserfromJson -user $user
+    }
+    return $request
+}
+
 function oktaConvertUsertoFederation()
 {
     param
