@@ -493,9 +493,9 @@ function _oktaMakeCall()
         
         $code = $_.Exception.Response.StatusCode
         
-        if ( $_.Exception.Response.Headers.Contains('X-Okta-Requst-Id') )
+        if ( $_.Exception.Response.Headers.Contains('X-Okta-Request-Id') )
         {
-            $reqId = $_.Exception.Response.Headers.GetValues('X-Okta-Requst-Id')
+            $reqId = $_.Exception.Response.Headers.GetValues('X-Okta-Request-Id')
             Write-Warning("Okta Request ID: " + $reqId[0])
         }
         
