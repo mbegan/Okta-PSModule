@@ -578,11 +578,11 @@ function _oktaMakeCall()
         Write-Verbose( "Okta Request ID: " + $responseHeaders['X-Okta-Request-Id'] )
     }
 
-    if ($responseHeaders['Link'])
+    if ($responseHeaders['link'])
     {
         try
         {
-            $link = oktaProcessHeaderLink -linkHeader $responseHeaders['Link']
+            $link = oktaProcessHeaderLink -linkHeader $responseHeaders['link']
         }
         catch
         {
