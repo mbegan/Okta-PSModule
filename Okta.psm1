@@ -467,10 +467,10 @@ function _oktaMakeCall()
             {
                 $postData = ConvertTo-Json $body -Depth 10
                 Write-Verbose($postData)
-                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
+                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -UseBasicParsing -Headers $headers `
                             -ContentType $contentType -Verbose:$oktaVerbose -Body $postData -ErrorVariable evar -SessionVariable Global:myWebSession
             } else {
-                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
+                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -UseBasicParsing -Headers $headers `
                             -ContentType $contentType -Verbose:$oktaVerbose -ErrorVariable evar -SessionVariable Global:myWebSession
             }
         } else {
@@ -478,10 +478,10 @@ function _oktaMakeCall()
             {
                 $postData = ConvertTo-Json $body -Depth 10
                 Write-Verbose($postData)
-                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
+                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -UseBasicParsing -Headers $headers `
                             -ContentType $contentType -Verbose:$oktaVerbose -Body $postData -ErrorVariable evar -WebSession $Global:myWebSession
             } else {
-                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
+                $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -UseBasicParsing -Headers $headers `
                             -ContentType $contentType -Verbose:$oktaVerbose -ErrorVariable evar -WebSession $Global:myWebSession  
             }
         }
