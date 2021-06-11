@@ -991,57 +991,6 @@ function oktaUpdateUserbyID()
     return $request
 }
 
-function oktaUpdateGroupProfilebyID()
-{
-    param
-    (
-        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$gid,
-        [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$name,
-        [parameter(Mandatory=$false)][ValidateLength(1,1024)][String]$description
-    )
-    [string]$method = "Put"
-    [string]$resource = "/api/v1/groups/" + $gid
-    if (!$name -and !$description)
-    {
-    throw ("Must specify name and/or description")
-    }
-    if (!$name)
-    {
-    $name = (oktaGetGroupbyId -oOrg $oOrg -gid $gid).profile.name
-    }
-    if (!$description)
-	{
-		try
-		{
-		$description = (oktaGetGroupbyId -oOrg $oOrg -gid $gid).profile.description
-		}
-		catch
-		{
-		$description = " "
-		}
-	}
-    $psobj = @{
-        profile = @{
-            name = $name
-            description = $description
-        }
-      }
-    try
-    {
-    $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
-    }
-    catch
-    {
-        if ($oktaVerbose -eq $true)
-        {
-            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
-        }
-        throw $_
-    }
-    return $request
-}
-
 function oktaChangePasswordbyID()
 {
    param
@@ -2565,18 +2514,16 @@ function oktaGetRoleTargetsByUserId()
     param
     (
         [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
-        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid
+        [parameter(Mandatory=$true)][alias("userId")][ValidateLength(20,20)][String]$uid,
+        [parameter(Mandatory=$true)][alias("roleId")][ValidateLength(14,24)][String]$rid
     )
        
-    [string]$resource = "/api/internal/administrators/" + $uid
+    [string]$resource = "/api/v1/users/" + $uid + "/roles/" + $rid + "/targets/groups"
     [string]$method = "Get"
     
     try
     {
-        $roledetails = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
-        $request = ForEach ($gid in ($roledetails).userAdminGroupIds) {
-            oktaGetGroupbyId -oOrg $oOrg -gid $gid
-        }
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -enablePagination:$true
     }
     catch
     {
