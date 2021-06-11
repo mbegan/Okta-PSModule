@@ -2509,6 +2509,60 @@ function oktaDelUserFromRoles()
     return $request
 }
 
+function oktaAddgroupIDtoAppID
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][alias("groupID")][ValidateLength(20,20)][String]$gid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid
+    )
+        
+    [string]$resource = "/api/v1/apps/" + $aid + "/groups/" + $gid
+    [string]$method = "Put"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaDelGroupIDfromAppID
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][alias("groupID")][ValidateLength(20,20)][String]$gid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid
+    )
+        
+    [string]$resource = "/api/v1/apps/" + $aid + "/groups/" + $gid
+    [string]$method = "Delete"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaGetRoleTargetsByUserId()
 {
     param
