@@ -4631,6 +4631,46 @@ function oktaListAppAssignments()
     return $request
 }
 
+function oktaUpdateGroupProfilebyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$gid,
+        [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$name,
+        [parameter(Mandatory=$false)][ValidateLength(1,1024)][String]$description
+    )
+    [string]$method = "Put"
+    [string]$resource = "/api/v1/groups/" + $gid
+    if ($null -eq $name)
+    {
+    $name = (oktaGetGroupbyId -oOrg $oOrg -gid $gid).profile.name
+    }
+    if ($null -eq $description)
+    {
+    $description = (oktaGetGroupbyId -oOrg $oOrg -gid $gid).profile.description
+    }
+    $psobj = @{
+        profile = @{
+            name = $name
+            description = $description
+        }
+      }
+    try
+    {
+    $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 ################## _links ###########################
 
 function oktaFetch_link()
