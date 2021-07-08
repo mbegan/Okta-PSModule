@@ -224,6 +224,7 @@ catch
 - oktaResetFactorsbyUser
 - oktaResetPasswordbyID
 - oktaSetAppidCredentialUsername
+- oktaSetPasswordbyID
 - oktaUnlockUserbyId
 - oktaUpdateApp
 - oktaUpdateAppExternalIdbyUserId
