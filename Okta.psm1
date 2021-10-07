@@ -437,16 +437,27 @@ function _oktaMakeCall()
         [parameter(Mandatory=$true)][String]$uri,
         [parameter(Mandatory=$true)][hashtable]$headers,
         [parameter(Mandatory=$false)][Object]$body = @{},
-        [parameter(Mandatory=$false)][String]$userAgent
+        [parameter(Mandatory=$false)][String]$userAgent,
+        [parameter(Mandatory=$false)][String]$contentType = "application/json"
     )
-
-    $contentType = "application/json"
 
     if (!$userAgent)
     {
         $userAgent = oktaMakeUserAgent
     }
 
+    <# Verbose Request header readout #>
+    foreach ($h in $headers.Keys)
+    {
+        if ($h -eq 'Authorization')
+        {
+            Write-Verbose("Req-Hdr: " + $h + " -> SSWS xXxXxXxxXxxXxXxXxxXx")
+        } else {
+            Write-Verbose("Req-Hdr: " + $h + " -> " + $headers[$h])
+        }
+    }
+    Write-Verbose("Req-Hdr: " + "Content-Type" + " -> " + $contentType)
+    Write-Verbose("Req-Hdr: " + "User-Agent" + " -> " + $userAgent)
     try
     {
         if (!$Global:myWebSession)
@@ -474,19 +485,6 @@ function _oktaMakeCall()
                             -ContentType $contentType -Verbose:$oktaVerbose -ErrorVariable evar -WebSession $Global:myWebSession  
             }
         }
-
-        <# Verbose Request header readout #>
-        foreach ($h in $headers.Keys)
-        {
-            if ($h -eq 'Authorization')
-            {
-                Write-Verbose("Req-Hdr: " + $h + " -> SSWS xXxXxXxxXxxXxXxXxxXx")
-            } else {
-                Write-Verbose("Req-Hdr: " + $h + " -> " + $headers[$h])
-            }
-        }
-        Write-Verbose("Req-Hdr: " + "Content-Type" + " -> " + $contentType)
-        Write-Verbose("Req-Hdr: " + "User-Agent" + " -> " + $userAgent)
     }
     catch [System.Net.WebException], [Microsoft.PowerShell.Commands.HttpResponseException]
     {
@@ -578,11 +576,11 @@ function _oktaMakeCall()
         Write-Verbose( "Okta Request ID: " + $responseHeaders['X-Okta-Request-Id'] )
     }
 
-    if ($responseHeaders['Link'])
+    if ($responseHeaders['link'])
     {
         try
         {
-            $link = oktaProcessHeaderLink -linkHeader $responseHeaders['Link']
+            $link = oktaProcessHeaderLink -linkHeader $responseHeaders['link']
         }
         catch
         {
@@ -651,7 +649,8 @@ function _oktaNewCall()
         [parameter(Mandatory=$false)][boolean]$enablePagination = $OktaOrgs[$oOrg].enablePagination,
         [parameter(Mandatory=$false)][Object]$altHeaders,
         [parameter(Mandatory=$false)][ValidateRange(1,10000)][int]$limit,
-        [parameter(Mandatory=$false)][boolean]$untrusted=$false
+        [parameter(Mandatory=$false)][boolean]$untrusted=$false,
+        [parameter(Mandatory=$false)][String]$contentType = "application/json"
     )
 
     $headers = New-Object System.Collections.Hashtable
@@ -668,7 +667,6 @@ function _oktaNewCall()
     $_c = $headers.add('Accept-Language','en-US')
     $_c = $headers.add('Accept-Encoding','deflate,gzip')
 
-    [string]$encoding = "application/json"
     if ($resource -like 'https://*')
     {
         [string]$uri = $resource
@@ -681,7 +679,7 @@ function _oktaNewCall()
         $userAgent = $altHeaders['UserAgent']
         $altHeaders.Remove('UserAgent')
     }
-
+    
     foreach ($alt in $altHeaders.Keys)
     {
         $_c = $headers.Add($alt,$altHeaders[$alt])
@@ -701,7 +699,12 @@ function _oktaNewCall()
     {
         try
         {
-            $response = _oktaMakeCall -method $method -uri $uri -headers $headers -body $body -userAgent $userAgent
+            if ($file)
+            {
+                $response = _oktaMakeCall -method $method -uri $uri -headers $headers -file $file -userAgent $userAgent -contentType $contentType
+            } else {
+                $response = _oktaMakeCall -method $method -uri $uri -headers $headers -body $body -userAgent $userAgent -contentType $contentType
+            }
         }
         catch
         {
@@ -1468,7 +1471,122 @@ function oktaGetUsersbyAppID()
     }#>
     return $request
 }
+function oktaCreateCSRbyAppID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
+        [parameter(Mandatory=$false)][array]$dnsNames,
+        [parameter(Mandatory=$true)][string]$commonName,
+        [parameter(Mandatory=$false)][string]$countryName,
+        [parameter(Mandatory=$false)][string]$localityName,
+        [parameter(Mandatory=$false)][string]$organizationName,
+        [parameter(Mandatory=$false)][string]$organizationalUnitName,
+        [parameter(Mandatory=$false)][string]$stateOrProvinceName
+    )
+    
+    [string]$method = "Post"
+    [string]$resource = "/api/v1/apps/" + $aid + "/credentials/csrs"
+    
+    $psobj = @{
+        subject = @{
+            commonName = $commonName
+        }
+      }
+    
+    [string[]]$subjectOptions = "countryName", "localityName", "organizationName", "organizationalUnitName", "stateOrProvinceName"
+    foreach ($option in $subjectOptions)
+    {
+        if (Get-Variable -Name $option -ErrorAction SilentlyContinue)
+        {
+            if ( (Get-Variable -Name $option -ValueOnly) -ne "" )
+            {
+                $psobj.subject.add($option, (Get-Variable -Name $option -ValueOnly))
+            }
+        }
+    }
+    
+    if ($dnsNames)
+    {
+        $temp = @{ dnsNames = $dnsNames}
+        $psobj.add("subjectAltNames", $temp)
+    }
 
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -body $psobj
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+
+    $offset=0
+    Write-Host "-----BEGIN CERTIFICATE REQUEST-----"
+    While ($offset -lt $request.csr.Length)
+    {
+        $len = ($request.csr.Length - $offset)
+        if ($len -ge 64)
+        {
+            $len = 64
+        }
+        Write-Host $request.csr.Substring($offset,$len)
+        $offset=$offset+$len
+    }
+    Write-Host "-----END CERTIFICATE REQUEST-----"
+    return $request
+}
+function oktaPublishCSRbyCSRandAppID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid,
+        [parameter(Mandatory=$true)][ValidateLength(43,43)][String]$csrid,
+        [parameter(Mandatory=$true)][string]$format="DER",
+        [parameter(Mandatory=$true)][string]$cert
+    )
+    
+    $cert = $cert -replace "-----.+-----",""
+    $cert = $cert.Replace("`n","").Replace("`r","")
+
+    [string]$method = "Post"
+    [string]$resource = "/api/v1/apps/" + $aid + "/credentials/csrs/" + $csrid + "/lifecycle/publish"
+    
+    #DER
+    $altHeaders = New-Object hashtable
+    $contentType = "application/json"
+
+    if ("DER" -eq $format)
+    {
+        $contentType = "application/pkix-cert"
+        $altHeaders.Add('Content-Type', "application/pkix-cert")
+        $altHeaders.Add('Accept', "application/json")
+        $altHeaders.Add('Content-Transfer-Encoding', "base64")
+    }
+    #PEM point to file
+    #CER point to file
+
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg -contentType $contentType -altHeaders $altHeaders -body $cert
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+
+    return $request
+}
 function oktaGetUsersbyAppIDWithStatus()
 {
     param
