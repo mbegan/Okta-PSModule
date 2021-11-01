@@ -440,6 +440,14 @@ function _oktaMakeCall()
         [parameter(Mandatory=$false)][String]$userAgent,
         [parameter(Mandatory=$false)][String]$contentType = "application/json"
     )
+    <# Lets build in a websession switcher #>
+    $oOrgVar = $uri.split(".")[0].split("//")[-1] # holds oOrg Info for state save
+    if ((Get-Variable -Name $("myWebSession" + $oOrgVar) -Scope Global -ErrorAction SilentlyContinue) -ne $null) {
+      $Global:myWebSession = (Get-Variable -Name $("myWebSession" + $oOrgVar) -Scope Global).value
+    } else {
+        # First Run Through
+    }
+    <# End Switcher #>
 
     if (!$userAgent)
     {
@@ -634,7 +642,11 @@ function _oktaMakeCall()
     }
 
     if ($rateLimt){ _oktaRateLimitCheck }
-    
+
+    <# Variable Switcher - save state #>
+    Set-Variable -Name $("myWebSession" + $oOrgVar) -value $(Get-Variable -Name "myWebSession"  -Scope Global).value -Scope Global
+    <# End - Save state#>
+
     return @{ result = $result ; next = $next ; ratelimit = $rateLimt }
 }
 
