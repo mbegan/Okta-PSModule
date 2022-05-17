@@ -460,13 +460,15 @@ function _oktaMakeCall()
     Write-Verbose("Req-Hdr: " + "User-Agent" + " -> " + $userAgent)
     try
     {
+        if ($body.Count -gt 0) {
+            $postData = ConvertTo-Json $body -Depth 10
+            Write-Verbose($postData)
+            }
         if (!$Global:myWebSession)
         {
             Write-Verbose("Creating myWebSession first")
             if ( ($method -eq "Post") -or ($method -eq "Put") )
             {
-                $postData = ConvertTo-Json $body -Depth 10
-                Write-Verbose($postData)
                 $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
                             -ContentType $contentType -Verbose:$oktaVerbose -Body $postData -ErrorVariable evar -SessionVariable Global:myWebSession
             } else {
@@ -476,8 +478,6 @@ function _oktaMakeCall()
         } else {
             if ( ($method -eq "Post") -or ($method -eq "Put") )
             {
-                $postData = ConvertTo-Json $body -Depth 10
-                Write-Verbose($postData)
                 $request2 = Invoke-WebRequest -Uri $uri -Method $method -UserAgent $userAgent -Headers $headers `
                             -ContentType $contentType -Verbose:$oktaVerbose -Body $postData -ErrorVariable evar -WebSession $Global:myWebSession
             } else {
@@ -2627,6 +2627,99 @@ function oktaDelUserFromRoles()
     return $request
 }
 
+function oktaUpdateRoleNotification()
+{
+    param(
+        [parameter(ParameterSetName="user", mandatory=$true)]
+        [ValidateLength(20,20)][string]$uid,
+        [parameter(ParameterSetName="group", mandatory=$true)]
+        [ValidateLength(20,20)][string]$gid,
+        [parameter(ParameterSetName="user", mandatory=$true)]
+        [parameter(ParameterSetName="group", mandatory=$true)]
+        [ValidateSet('true','false')][string]$notification,
+        [parameter(ParameterSetName="user", mandatory=$false)]
+        [parameter(ParameterSetName="group", mandatory=$false)]
+        [ValidateLength(1,100)][string]$oOrg=$oktaDefOrg
+    )
+    
+    [string]$method = "Post"
+
+    if($uid) {
+        [string]$resource = "/api/v1/users/" + $uid + "/roles?disableNotifications=" + $notification
+    }
+    elseif($gid) {
+        [string]$resource = "/api/v1/groups/" + $gid + "/roles?disableNotifications=" + $notification
+    }
+
+    try
+    {
+        $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -WarningAction SilentlyContinue
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaAddgroupIDtoAppID
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][alias("groupID")][ValidateLength(20,20)][String]$gid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid
+    )
+        
+    [string]$resource = "/api/v1/apps/" + $aid + "/groups/" + $gid
+    [string]$method = "Put"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaDelGroupIDfromAppID
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][alias("groupID")][ValidateLength(20,20)][String]$gid,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$aid
+    )
+        
+    [string]$resource = "/api/v1/apps/" + $aid + "/groups/" + $gid
+    [string]$method = "Delete"
+    
+    try
+    {
+        $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
 function oktaGetRoleTargetsByUserId()
 {
     param
@@ -4737,6 +4830,46 @@ function oktaListAppAssignments()
     try
     {
         $request = _oktaNewCall -method $method -resource $resource -oOrg $oOrg
+    }
+    catch
+    {
+        if ($oktaVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request
+}
+
+function oktaUpdateGroupProfilebyID()
+{
+    param
+    (
+        [parameter(Mandatory=$false)][ValidateLength(1,100)][String]$oOrg=$oktaDefOrg,
+        [parameter(Mandatory=$true)][ValidateLength(20,20)][String]$gid,
+        [parameter(Mandatory=$false)][ValidateLength(1,255)][String]$name,
+        [parameter(Mandatory=$false)][ValidateLength(1,1024)][String]$description
+    )
+    [string]$method = "Put"
+    [string]$resource = "/api/v1/groups/" + $gid
+    if ($null -eq $name)
+    {
+    $name = (oktaGetGroupbyId -oOrg $oOrg -gid $gid).profile.name
+    }
+    if ($null -eq $description)
+    {
+    $description = (oktaGetGroupbyId -oOrg $oOrg -gid $gid).profile.description
+    }
+    $psobj = @{
+        profile = @{
+            name = $name
+            description = $description
+        }
+      }
+    try
+    {
+    $request = _oktaNewCall -oOrg $oOrg -method $method -resource $resource -body $psobj
     }
     catch
     {
